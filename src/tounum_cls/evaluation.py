@@ -68,3 +68,110 @@ def diagnose_fit(hist: pd.DataFrame, low_acc: float = 0.90, gap_max: float = 0.0
         "train_loss": float(last["loss"]), "val_loss": float(last["val_loss"]),
         "best_epoch": best_epoch, "val_loss_drift": drift, "verdict": verdict,
     }
+
+
+def plot_history(hist: pd.DataFrame, title: str = ""):
+    """Courbes loss (gauche) et accuracy (droite), entraînement vs validation, par epoch."""
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3.8))
+    for ax, metric, label in zip(axes, ["loss", "accuracy"], ["Erreur (binary cross-entropy)", "Accuracy"]):
+        ax.plot(hist["epoch"], hist[metric], marker="o", ms=3, label="entraînement")
+        ax.plot(hist["epoch"], hist[f"val_{metric}"], marker="o", ms=3, label="validation")
+        ax.set_xlabel("epoch")
+        ax.set_ylabel(label)
+        ax.grid(alpha=0.3)
+        ax.legend()
+    axes[0].set_title(f"{title} - erreur" if title else "Erreur")
+    axes[1].set_title(f"{title} - accuracy" if title else "Accuracy")
+    fig.tight_layout()
+    return fig
+
+
+def plot_confusion(y_true, y_prob, threshold: float = 0.5, title: str = ""):
+    """Matrice de confusion annotée (lignes = réel, colonnes = prédit)."""
+    y_pred = (np.asarray(y_prob) >= threshold).astype(int)
+    cm = confusion_matrix(np.asarray(y_true).astype(int), y_pred, labels=[0, 1])
+    fig, ax = plt.subplots(figsize=(3.8, 3.4))
+    ax.imshow(cm, cmap="Blues")
+    ax.set_xticks([0, 1], ["non-photo", "photo"])
+    ax.set_yticks([0, 1], ["non-photo", "photo"])
+    ax.set_xlabel("prédit")
+    ax.set_ylabel("réel")
+    ax.set_title(title)
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, str(cm[i, j]), ha="center", va="center",
+                    color="white" if cm[i, j] > cm.max() / 2 else "black")
+    fig.tight_layout()
+    return fig
+
+
+def plot_precision_recall(y_true, y_prob, title: str = ""):
+    """Courbe précision/rappel pour discuter du choix du seuil."""
+    p, r, _ = precision_recall_curve(np.asarray(y_true).astype(int), y_prob)
+    fig, ax = plt.subplots(figsize=(4.5, 3.6))
+    ax.plot(r, p)
+    ax.set_xlabel("rappel (photos retrouvées)")
+    ax.set_ylabel("précision (photos prédites qui en sont)")
+    ax.set_title(title)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    return fig
+
+
+def show_errors(X, meta: pd.DataFrame, y_prob, kind: str = "fp", n: int = 8, threshold: float = 0.5):
+    """Galerie des erreurs. kind='fp' : non-photos prédites photo ; 'fn' : photos manquées.
+
+    Les plus « confiantes » (les plus graves) d'abord. Renvoie la figure (ou None s'il n'y a aucune erreur).
+    """
+    y_prob = np.asarray(y_prob)
+    label = meta["label"].to_numpy()
+    mask = (label == 0) & (y_prob >= threshold) if kind == "fp" else (label == 1) & (y_prob < threshold)
+    idx = np.flatnonzero(mask)
+    if len(idx) == 0:
+        return None
+    idx = idx[np.argsort(-np.abs(y_prob[idx] - threshold))][:n]
+    cols = min(4, len(idx))
+    rows = int(np.ceil(len(idx) / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(3 * cols, 3.2 * rows), squeeze=False)
+    for ax in axes.ravel():
+        ax.axis("off")
+    for ax, i in zip(axes.ravel(), idx):
+        ax.imshow(X[i])
+        ax.set_title(f"{meta['source'].iloc[i]}\nP(photo)={y_prob[i]:.2f}", fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+_LAYER_COLORS = {
+    "InputLayer": "#d9d9d9", "Rescaling": "#d9d9d9", "Conv2D": "#9ecae1", "BatchNormalization": "#c7e9c0",
+    "Activation": "#fdd0a2", "MaxPooling2D": "#bcbddc", "GlobalAveragePooling2D": "#fcbba1",
+    "Dense": "#fdae6b", "Dropout": "#f2f2a0", "RandomFlip": "#eeeeee", "RandomRotation": "#eeeeee",
+    "RandomZoom": "#eeeeee", "RandomContrast": "#eeeeee",
+}
+
+
+def draw_architecture(model, title: str | None = None):
+    """Schéma vertical du réseau dessiné avec matplotlib (aucun outil externe type graphviz requis).
+
+    Une boîte par couche : nom, type, forme de sortie. Flèches entre couches.
+    """
+    layers_ = list(model.layers)
+    n = len(layers_)
+    box_h, gap = 0.6, 0.25
+    fig, ax = plt.subplots(figsize=(6.2, 0.85 * n * 0.62 + 1.2))
+    for k, layer in enumerate(layers_):
+        y = (n - 1 - k) * (box_h + gap)
+        kind = type(layer).__name__
+        shape = tuple(layer.output.shape)[1:] if hasattr(layer, "output") else ""
+        ax.add_patch(FancyBboxPatch((0, y), 5, box_h, boxstyle="round,pad=0.02",
+                                    fc=_LAYER_COLORS.get(kind, "#ffffff"), ec="#444444"))
+        ax.text(0.15, y + box_h / 2, f"{layer.name}  [{kind}]", va="center", fontsize=9, fontweight="bold")
+        ax.text(4.85, y + box_h / 2, str(shape), va="center", ha="right", fontsize=9)
+        if k < n - 1:
+            ax.annotate("", xy=(2.5, y - gap + 0.02), xytext=(2.5, y), arrowprops=dict(arrowstyle="->", color="#444444"))
+    ax.set_xlim(-0.2, 5.2)
+    ax.set_ylim(-0.3, n * (box_h + gap))
+    ax.axis("off")
+    ax.set_title(title or f"Architecture : {model.name} ({model.count_params():,} paramètres)")
+    fig.tight_layout()
+    return fig

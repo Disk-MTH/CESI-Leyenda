@@ -42,3 +42,21 @@ def test_diagnose_fit_three_regimes():
     assert "biais" in under["verdict"]
     assert "variance" in over["verdict"] and over["best_epoch"] == 1 and over["gap_acc"] == pytest.approx(0.14)
     assert "correct" in good["verdict"] and good["best_epoch"] == 2
+
+
+def test_plots_return_figures():
+    hist = pd.DataFrame({"epoch": [1, 2], "loss": [1, .5], "val_loss": [1, .7], "accuracy": [.5, .8], "val_accuracy": [.5, .7]})
+    y = np.array([0, 1, 0, 1]); p = np.array([.1, .9, .6, .4])
+    X = np.zeros((4, 8, 8, 3), np.uint8)
+    meta = pd.DataFrame({"source": ["Text", "Photo", "Painting", "Photo"], "label": y})
+    assert evaluation.plot_history(hist, "t") is not None
+    assert evaluation.plot_confusion(y, p) is not None
+    assert evaluation.plot_precision_recall(y, p) is not None
+    assert evaluation.show_errors(X, meta, p, kind="fp") is not None
+    assert evaluation.show_errors(X, meta, p, kind="fn") is not None
+    assert evaluation.show_errors(X, meta, np.array([0, 1, 0, 1.0]), kind="fp") is None
+
+
+def test_draw_architecture():
+    m = modeling.build_cnn(img_size=32, dropout=0.2)
+    assert evaluation.draw_architecture(m) is not None
