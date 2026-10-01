@@ -623,3 +623,214 @@ display(Markdown(
     f"→ **{d['verdict']}**. Rappel : avec dropout et augmentation, l'accuracy d'entraînement est mesurée *avec* ces "
     "perturbations actives, donc plus basse que ce qu'elle serait en inférence."
 ))
+
+
+# %% [markdown]
+# ## 9. Évaluation finale
+#
+# On utilise maintenant le jeu **`test`** (équilibré, jamais vu) et le **test étendu `ext`** (déséquilibré, réaliste),
+# **une seule fois**, avec le modèle retenu en section 8.
+
+# %%
+Xe, ye, me = data.select(X, meta, "ext")
+results, probas = {}, {}
+for label, (Xs, ys, ms) in {"test (équilibré)": (Xte, yte, mte), "ext (réaliste)": (Xe, ye, me)}.items():
+    probas[label] = modeling.predict_proba(final_model, Xs)
+    results[label] = evaluation.evaluate_binary(ys, probas[label])
+res_df = pd.DataFrame(results).T
+display(res_df[["accuracy", "balanced_accuracy", "precision", "recall", "f1", "roc_auc", "tp", "fp", "fn", "tn"]])
+print(f"Part de photos : test {yte.mean():.1%} | ext {ye.mean():.1%}")
+
+# %%
+for label, (Xs, ys, ms) in {"test (équilibré)": (Xte, yte, mte), "ext (réaliste)": (Xe, ye, me)}.items():
+    evaluation.plot_confusion(ys, probas[label], title=f"Matrice de confusion — {label}")
+    plt.show()
+
+# %% [markdown]
+# ### 9.1 Où le modèle se trompe-t-il ?
+# Accuracy par type d'image (sur le test étendu, plus large) :
+
+# %%
+per_src_ext = evaluation.per_source_accuracy(me, probas["ext (réaliste)"])
+display(per_src_ext)
+fig, ax = plt.subplots(figsize=(6, 3))
+sns.barplot(data=per_src_ext, x="source", y="accuracy", order=config.CLASSES, ax=ax)
+ax.set_ylim(0.5, 1.0)
+ax.set_xlabel("")
+ax.set_title("Accuracy par type d'image — test étendu")
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# **Faux positifs** : des non-photos prises pour des photos (les plus « sûres d'elles » d'abord). Ce sont les cas
+# critiques pour TouNum, puisqu'ils polluent l'entrée du module de légendage.
+
+# %%
+fig = evaluation.show_errors(Xe, me, probas["ext (réaliste)"], kind="fp", n=8)
+if fig is None:
+    print("Aucun faux positif sur le test étendu.")
+else:
+    plt.show()
+
+# %% [markdown]
+# **Faux négatifs** : des photos rejetées (les plus « sûres d'elles » d'abord).
+
+# %%
+fig = evaluation.show_errors(Xe, me, probas["ext (réaliste)"], kind="fn", n=8)
+if fig is None:
+    print("Aucun faux négatif sur le test étendu.")
+else:
+    plt.show()
+
+# %% [markdown]
+# ### 9.2 Choix du seuil de décision
+# Le seuil 0,5 est un défaut. Pour TouNum, **laisser passer une non-photo** (faux positif, baisse de précision) et
+# **perdre une photo** (faux négatif, baisse du rappel) n'ont pas le même coût : le bon seuil est une décision
+# métier. Le tableau ci-dessous aide à le choisir sur le test étendu, où les photos sont minoritaires.
+
+# %%
+rows = []
+for thr in (0.1, 0.3, 0.5, 0.7, 0.9):
+    r = evaluation.evaluate_binary(ye, probas["ext (réaliste)"], threshold=thr)
+    rows.append({"seuil": thr, "précision": r["precision"], "rappel": r["recall"], "F1": r["f1"],
+                 "faux positifs": r["fp"], "faux négatifs": r["fn"]})
+display(pd.DataFrame(rows).set_index("seuil"))
+evaluation.plot_precision_recall(ye, probas["ext (réaliste)"], "Précision / rappel — test étendu")
+plt.show()
+
+# %%
+res_t, res_e = results["test (équilibré)"], results["ext (réaliste)"]
+worst = per_src_ext.iloc[0]
+display(Markdown(
+    f"**Lecture automatique.** Test équilibré : accuracy **{res_t['accuracy']:.3f}**, F1 **{res_t['f1']:.3f}**, "
+    f"ROC-AUC **{res_t['roc_auc']:.3f}**. Test étendu (photos ≈ {ye.mean():.0%}) : accuracy **{res_e['accuracy']:.3f}**, "
+    f"précision **{res_e['precision']:.3f}**, rappel **{res_e['recall']:.3f}**, F1 **{res_e['f1']:.3f}**. "
+    f"Le type d'image le moins bien classé est **{worst['source']}** (accuracy {worst['accuracy']:.3f}). "
+    + ("La précision est plus basse sur le test étendu car les photos y sont minoritaires : à taux de faux positifs égal, "
+       "les faux positifs pèsent plus lourd face à moins de vrais positifs. C'est la métrique à surveiller en production."
+       if res_e["precision"] < res_t["precision"] - 0.01
+       else "La précision reste stable malgré le déséquilibre des classes du test étendu.")
+))
+
+# %% [markdown]
+# ### 9.3 Sauvegarde et utilisation en production
+# Le modèle contient son propre prétraitement (`Rescaling`) : il suffit de lui fournir des images 128×128×3 en `uint8`.
+# La fonction `data.load_image` fait la conversion (RGB + redimensionnement) depuis n'importe quel fichier jpg / png.
+
+# %%
+MODEL_PATH = config.PROJECT_ROOT / "models" / "cnn_photo_final.keras"
+MODEL_PATH.parent.mkdir(exist_ok=True)
+final_model.save(MODEL_PATH)
+reloaded = keras.models.load_model(MODEL_PATH)
+assert np.allclose(reloaded.predict(Xte[:32], verbose=0), final_model.predict(Xte[:32], verbose=0), atol=1e-5)
+print(f"Modèle sauvegardé : {MODEL_PATH.relative_to(config.PROJECT_ROOT)} ({MODEL_PATH.stat().st_size / 1e6:.1f} Mo) — rechargement vérifié.")
+
+
+def predict_photo(model, paths, threshold=0.5):
+    """Classe des fichiers image : renvoie un DataFrame (fichier, P(photo), est_une_photo)."""
+    batch = np.stack([data.load_image(p) for p in paths])
+    proba = modeling.predict_proba(model, batch)
+    return pd.DataFrame({"fichier": [Path(p).name for p in paths], "P(photo)": proba.round(3),
+                         "est_une_photo": proba >= threshold})
+
+
+demo = me.sample(8, random_state=config.SEED)
+out = predict_photo(reloaded, demo["path"].tolist())
+out["vérité"] = demo["source"].to_numpy()
+display(out)
+
+# %% [markdown]
+# ## 10. Comparaison avec un réseau pré-entraîné (MobileNetV2)
+#
+# Pour **justifier le choix d'architecture par les résultats**, on le compare à **MobileNetV2** pré-entraîné sur ImageNet
+# (1,4 million d'images), utilisé comme extracteur de caractéristiques **gelé** : seule la tête (`Dense` sigmoïde) est
+# entraînée. C'est le *transfert d'apprentissage*. Les poids sont téléchargés depuis Internet à la première utilisation.
+
+# %%
+def summarize(model, name):
+    row = {"modèle": name, "paramètres": model.count_params(),
+           "entraînables": int(sum(np.prod(w.shape) for w in model.trainable_weights))}
+    for label, (Xs, ys, ms) in {"test": (Xte, yte, mte), "ext": (Xe, ye, me)}.items():
+        p = modeling.predict_proba(model, Xs)
+        r = evaluation.evaluate_binary(ys, p)
+        row[f"{label} accuracy"], row[f"{label} F1"], row[f"{label} AUC"] = r["accuracy"], r["f1"], r["roc_auc"]
+        if label == "ext":
+            acc = evaluation.per_source_accuracy(ms, p).set_index("source")["accuracy"]
+            row["ext acc. Painting"] = acc.get("Painting", np.nan)
+    return row
+
+
+compare_rows = [summarize(final_model, f"CNN maison ({best_name})")]
+try:
+    mnet = modeling.build_mobilenet()
+    keras.utils.set_random_seed(config.SEED)
+    t0 = time.perf_counter()
+    mnet_hist = modeling.train(mnet, data.make_dataset(Xtr, ytr, shuffle=True), data.make_dataset(Xva, yva),
+                               epochs=EPOCHS["mobilenet"], class_weight=data.class_weights(ytr), verbose=0)
+    mnet_sec = time.perf_counter() - t0
+    row = summarize(mnet, "MobileNetV2 gelé + tête")
+    row["durée d'entraînement (s)"] = round(mnet_sec)
+    compare_rows.append(row)
+    evaluation.plot_history(mnet_hist, "MobileNetV2")
+    plt.show()
+except Exception as exc:  # pas de réseau pour télécharger les poids ImageNet, par exemple
+    print(f"Comparaison MobileNetV2 ignorée : {type(exc).__name__}: {exc}")
+compare_rows[0]["durée d'entraînement (s)"] = round(imp_df.loc[best_name, "durée (s)"])
+compare_df = pd.DataFrame(compare_rows).set_index("modèle")
+display(compare_df)
+
+# %%
+if len(compare_df) == 2:
+    a, b = compare_df.iloc[0], compare_df.iloc[1]
+    gain = b["ext accuracy"] - a["ext accuracy"]
+    ratio = b["paramètres"] / a["paramètres"]
+    if gain > 0.02:
+        verdict = (f"MobileNetV2 est nettement plus précis (+{gain:.3f} d'accuracy sur le test étendu) avec {ratio:.0f} fois plus "
+                   "de paramètres. Si TouNum accepte un modèle plus lourd et la dépendance à des poids pré-entraînés, c'est le "
+                   "meilleur candidat pour la production ; le CNN maison reste une base légère, autonome et entièrement maîtrisée.")
+    elif gain < -0.02:
+        verdict = (f"Le CNN maison fait mieux (+{-gain:.3f} d'accuracy sur le test étendu) avec {ratio:.0f} fois moins de "
+                   "paramètres : il est retenu.")
+    else:
+        verdict = ("Performances comparables (écart < 0,02) : le CNN maison, plus léger et autonome, suffit.")
+    display(Markdown(
+        f"**Lecture automatique.** CNN maison : {int(a['paramètres']):,} paramètres, accuracy test {a['test accuracy']:.3f} / "
+        f"ext {a['ext accuracy']:.3f}, peintures {a['ext acc. Painting']:.3f}. MobileNetV2 : {int(b['paramètres']):,} "
+        f"paramètres ({int(b['entraînables']):,} entraînables), accuracy test {b['test accuracy']:.3f} / "
+        f"ext {b['ext accuracy']:.3f}, peintures {b['ext acc. Painting']:.3f}. **{verdict}**"
+    ))
+
+# %% [markdown]
+# ## 11. Conclusion, limites et suites
+#
+# ### Ce qui a été réalisé
+# 1. Un **workflow reproductible de la donnée brute au modèle** : inventaire des archives, échantillonnage disjoint,
+#    extraction sélective, normalisation (RGB, 128×128), cache, découpage stratifié.
+# 2. Un **CNN de ≈ 106 k paramètres** entraîné par Adam sur l'entropie croisée binaire, validé par une progression
+#    de difficulté croissante (section 4), et comparé à un réseau pré-entraîné (section 10, dont la conclusion
+#    indique quel modèle retenir en production).
+# 3. Une **analyse biais/variance** chiffrée (sections 6 à 8) et une comparaison de techniques de régularisation.
+# 4. Une **évaluation honnête** sur un jeu de test jamais utilisé, équilibré et réaliste (section 9), avec analyse des
+#    erreurs et choix du seuil.
+# 5. Un **modèle sauvegardé** (`models/cnn_photo_final.keras`) et une fonction d'inférence (`predict_photo`).
+#
+# ### Limites et esprit critique
+# - **Échantillon** : 6 000 images de modélisation sur ~42 000 disponibles ; les performances sur la totalité pourraient
+#   être légèrement meilleures. Les effectifs se règlent dans `config.py`.
+# - **Résolution 128×128 et étirement** : on perd les détails fins (utiles pour distinguer une peinture réaliste d'une
+#   photo) et on déforme les pages allongées.
+# - **Définition de « photo »** : l'étiquette dépend de l'archive d'origine. Une peinture hyper-réaliste ou une photo
+#   fortement retouchée reste ambiguë, y compris pour un humain ; des erreurs d'étiquetage dans les archives plafonnent
+#   l'accuracy atteignable.
+# - **Généralisation** : le modèle est évalué sur des images de même provenance. Des images venant d'autres
+#   sources (scanners différents, autres types de documents, autres époques) peuvent dégrader les résultats.
+# - **Qualité d'image** : toutes les images d'entraînement sont de qualité correcte. Le livrable 2 (débruitage) devra
+#   vérifier que le filtre reste performant sur des images bruitées ou floues.
+# - **Reproductibilité** : de petites variations numériques sont possibles d'une machine à l'autre.
+#
+# ### Pistes pour la suite
+# - Entraîner sur la totalité des archives et à plus haute résolution (GPU) ;
+# - affiner les peintures réalistes (augmentation ciblée, *fine-tuning* de MobileNetV2) ;
+# - ajuster le seuil avec TouNum selon le coût d'une erreur (section 9.2) ;
+# - **brancher ce filtre en amont du prétraitement et du captioning** (livrables 2 et 3) et mesurer son effet de bout en bout ;
+# - mettre en place un suivi en production (part de photos prédites, échantillon relu à la main) pour détecter une dérive des données.
