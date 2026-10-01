@@ -44,6 +44,25 @@ def test_diagnose_fit_three_regimes():
     assert "correct" in good["verdict"] and good["best_epoch"] == 2
 
 
+def test_diagnose_fit_restored_best_uses_kept_epoch():
+    hist = _hist([0.9, 0.99], [0.9, 0.85], [0.3, 0.5])
+    restored = evaluation.diagnose_fit(hist, restored_best=True)
+    assert restored["kept_epoch"] == 1
+    assert restored["gap_acc"] == pytest.approx(0.0)
+    assert restored["val_loss_drift"] == 0.0
+    assert "correct" in restored["verdict"]
+    default = evaluation.diagnose_fit(hist)
+    assert default["kept_epoch"] == 2
+    assert "variance" in default["verdict"]
+
+
+def test_diagnose_fit_drift_only_branch():
+    d = evaluation.diagnose_fit(_hist([0.95, 0.96], [0.94, 0.95], [0.30, 0.40]))
+    assert d["gap_acc"] == pytest.approx(0.01)
+    assert d["val_loss_drift"] == pytest.approx(0.10)
+    assert "variance" in d["verdict"]
+
+
 def test_plots_return_figures():
     hist = pd.DataFrame({"epoch": [1, 2], "loss": [1, .5], "val_loss": [1, .7], "accuracy": [.5, .8], "val_accuracy": [.5, .7]})
     y = np.array([0, 1, 0, 1]); p = np.array([.1, .9, .6, .4])

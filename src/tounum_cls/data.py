@@ -14,9 +14,9 @@ from sklearn.model_selection import train_test_split
 
 from . import config
 
-# Certaines peintures sont très grandes : on désactive la protection anti "decompression bomb"
-# de Pillow (les archives viennent de TouNum, source de confiance).
-Image.MAX_IMAGE_PIXELS = None
+# Certaines peintures sont très grandes (jusqu'à 68 Mpx dans les archives) : on relève le seuil de Pillow
+# au-dessus de la plus grande image tout en gardant une protection contre les "decompression bombs".
+Image.MAX_IMAGE_PIXELS = 200_000_000
 
 
 # --------------------------------------------------------------------------- inventaire
@@ -86,7 +86,8 @@ def extract_files(
 ) -> pd.DataFrame:
     """Extrait uniquement les fichiers du tirage vers raw_dir/<source>/<nom>. Ajoute la colonne `path`.
 
-    Idempotent : un fichier déjà extrait n'est pas réécrit.
+    Idempotent : un fichier déjà extrait n'est pas réécrit, sauf si sa taille diffère de celle de l'archive
+    (extraction interrompue ou fichier tronqué).
     """
     raw_dir = Path(raw_dir)
     out = sample.copy()
@@ -97,7 +98,7 @@ def extract_files(
         with zipfile.ZipFile(Path(zip_dir) / config.ZIP_FILES[source]) as zf:
             for idx, member in grp["member"].items():
                 dest = dest_dir / os.path.basename(member)
-                if not dest.exists():
+                if not dest.exists() or dest.stat().st_size != zf.getinfo(member).file_size:
                     dest.write_bytes(zf.read(member))
                 paths.loc[idx] = str(dest)
     out["path"] = paths

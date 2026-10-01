@@ -93,7 +93,7 @@ def train(
 ) -> pd.DataFrame:
     """Entraîne le modèle et renvoie l'historique sous forme de DataFrame (une ligne par epoch).
 
-    Colonnes : epoch, loss, accuracy, auc, val_loss, val_accuracy, val_auc.
+    Colonnes : epoch, accuracy, auc, loss, val_accuracy, val_auc, val_loss.
     Avec early_stopping=True : arrêt après `patience` epochs sans amélioration de val_loss,
     et restauration des meilleurs poids.
     """

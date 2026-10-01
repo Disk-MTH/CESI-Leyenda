@@ -48,6 +48,8 @@ def check(path: str, partial: bool = False) -> list[str]:
         problems.append(f"moins de {MIN_AUTO_READINGS} cellules « Lecture automatique »")
     if "disjoints" not in text:
         problems.append("contrôle anti-fuite absent")
+    if "mode QUICK : False" not in text:
+        problems.append("le notebook n'a pas été exécuté en mode complet")
     print(f"{path}: {len(code)} cellules de code, {n_fig} figures, {text.count('Lecture automatique')} lectures automatiques")
     return problems
 

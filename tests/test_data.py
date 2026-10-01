@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -60,6 +61,23 @@ def test_extract_files_writes_only_selected_and_is_idempotent(make_zip, tmp_path
     assert all(pd.Series(out["path"]).map(lambda p: os.path.exists(p)))
     assert len(list((raw / "Photo").glob("*"))) == 3
     data.extract_files(sample, tmp_path, raw)  # 2e appel sans erreur
+
+
+def test_extract_files_reextracts_truncated_file(make_zip, tmp_path):
+    for c in config.CLASSES:
+        make_zip(c, 4)
+    inv = data.build_inventory(tmp_path)
+    pool = {c: 1 for c in config.CLASSES}
+    ext = {c: 1 for c in config.CLASSES}
+    sample = data.sample_dataset(inv, pool, ext, seed=0)
+    raw = tmp_path / "raw"
+    out = data.extract_files(sample, tmp_path, raw)
+    victim = Path(out["path"].iloc[0])
+    original_size = victim.stat().st_size
+    victim.write_bytes(b"x")
+    assert victim.stat().st_size == 1
+    data.extract_files(sample, tmp_path, raw)
+    assert victim.stat().st_size == original_size
 
 
 @pytest.mark.parametrize("mode,fmt", [("RGB", "JPEG"), ("L", "PNG"), ("RGBA", "PNG")])

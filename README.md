@@ -20,7 +20,7 @@ textes scannés).
 | `pyproject.toml`, `uv.lock`, `.python-version` | dépendances épinglées et verrouillage complet (gérés par uv) |
 | `scripts/run_notebook.sh` | régénère et exécute le notebook (`quick` ou `full`) |
 | `scripts/check_notebook.py` | vérifie qu'un notebook exécuté est complet |
-| `models/cnn_photo_final.keras` | modèle retenu, sauvegardé |
+| `models/cnn_photo_final.keras` | CNN maison retenu, sauvegardé (le choix du modèle de production, CNN ou MobileNetV2, est discuté section 10 du notebook) |
 | `docs/superpowers/` | spécification et plan d'implémentation |
 | `Dataset Livrable 1 - *.zip` | archives fournies par TouNum (non versionnées) |
 
@@ -44,7 +44,8 @@ Placer les 5 archives `Dataset Livrable 1 - {Photo,Painting,Schematics,Text,Sket
 # 1. tests unitaires (≈ 15 s)
 uv run pytest -q
 
-# 2. vérification rapide que tout s'exécute (2 epochs partout)
+# 2. vérification rapide que tout s'exécute (2 epochs partout) : écrit notebooks/livrable1_classification_binaire.quick.ipynb
+#    (ignoré par git) et ne touche ni au livrable ni au modèle sauvegardé
 bash scripts/run_notebook.sh quick
 
 # 3. exécution complète = livrable (36 minutes sur un CPU 16 cœurs, mesuré)
@@ -56,10 +57,15 @@ uv run python scripts/check_notebook.py notebooks/livrable1_classification_binai
 
 À la première exécution, les images tirées sont extraites vers `data/raw/` et redimensionnées dans `data/cache/` (quelques minutes) ;
 ensuite le cache est relu instantanément. Pour repartir de zéro : `rm -rf data/`.
+Pour ouvrir le notebook de façon interactive : `uv run --with jupyterlab jupyter lab`.
 
 ## Utiliser le modèle en production
 
+Lancer ce script avec `PYTHONPATH=src uv run python script.py` (ou garder la première ligne `sys.path.insert` ci-dessous) :
+le paquet `tounum_cls` se trouve dans `src/`.
+
 ```python
+import sys; sys.path.insert(0, "src")
 import keras
 import numpy as np
 from tounum_cls import data, modeling
@@ -75,8 +81,8 @@ is_photo = p_photo >= 0.5                                            # seuil à 
 - **Changer la taille de l'échantillon** : éditer `POOL_COUNTS` / `EXT_COUNTS` dans `src/tounum_cls/config.py`, supprimer `data/cache/`, relancer le notebook.
 - **Ajouter un type d'image** : ajouter la classe dans `CLASSES`, `ZIP_FILES`, `POOL_COUNTS`, `EXT_COUNTS` et `STAGES` (config) ; les autres modules n'ont pas besoin d'être modifiés.
 - **Modifier le notebook** : éditer le `.py`, puis `bash scripts/run_notebook.sh full`. Ne pas éditer le `.ipynb` à la main.
-- **Reproductibilité** : graine `SEED = 42`. Sur CPU, TensorFlow peut produire de très petites variations numériques entre exécutions ou machines ; les conclusions ne changent pas.
-- Les textes « Lecture automatique » du notebook calculent leurs chiffres à chaque exécution : ils restent justes après un ré-entraînement.
+- **Reproductibilité** : graine `SEED = 42`. Sur CPU, TensorFlow peut produire de très petites variations numériques entre exécutions ou machines ; les chiffres peuvent varier légèrement ; les diagnostics proches d'un seuil peuvent basculer.
+- Seules les cellules « Lecture automatique » du notebook recalculent leurs chiffres à chaque exécution : le texte d'interprétation doit être relu après un ré-entraînement significatif.
 
 ## Limites connues
 

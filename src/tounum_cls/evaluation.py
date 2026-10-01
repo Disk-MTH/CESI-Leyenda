@@ -43,20 +43,30 @@ def per_source_accuracy(meta: pd.DataFrame, y_prob, threshold: float = 0.5) -> p
     return out.sort_values("accuracy").reset_index(drop=True)
 
 
-def diagnose_fit(hist: pd.DataFrame, low_acc: float = 0.90, gap_max: float = 0.05, drift_max: float = 0.05) -> dict:
+def diagnose_fit(
+    hist: pd.DataFrame,
+    low_acc: float = 0.90,
+    gap_max: float = 0.05,
+    drift_max: float = 0.05,
+    restored_best: bool = False,
+) -> dict:
     """Diagnostic biais/variance chiffré à partir de l'historique d'entraînement.
 
     * biais élevé (sous-apprentissage)  : accuracy d'entraînement finale < `low_acc`
     * variance élevée (sur-apprentissage) : écart accuracy train - val > `gap_max`
       OU val_loss finale supérieure de plus de `drift_max` à son minimum (la val_loss remonte)
     * sinon : compromis correct.
+    Avec `restored_best=True` (early stopping avec restauration des meilleurs poids), le diagnostic décrit
+    les poids restaurés : on utilise la ligne de l'epoch de plus faible val_loss et la remontée est nulle.
+    La clé `kept_epoch` indique l'epoch de la ligne utilisée.
     Attention : pendant l'entraînement, dropout et augmentation sont actifs, ce qui rend l'accuracy
     d'entraînement pessimiste (l'écart train/val est alors sous-estimé).
     """
-    last = hist.iloc[-1]
+    best_pos = int(hist["val_loss"].to_numpy().argmin())
+    last = hist.iloc[best_pos] if restored_best else hist.iloc[-1]
     gap = float(last["accuracy"] - last["val_accuracy"])
-    best_epoch = int(hist["epoch"].iloc[int(hist["val_loss"].to_numpy().argmin())])
-    drift = float(last["val_loss"] - hist["val_loss"].min())
+    best_epoch = int(hist["epoch"].iloc[best_pos])
+    drift = 0.0 if restored_best else float(last["val_loss"] - hist["val_loss"].min())
     if last["accuracy"] < low_acc:
         verdict = "biais élevé (sous-apprentissage)"
     elif gap > gap_max or drift > drift_max:
@@ -67,6 +77,7 @@ def diagnose_fit(hist: pd.DataFrame, low_acc: float = 0.90, gap_max: float = 0.0
         "train_acc": float(last["accuracy"]), "val_acc": float(last["val_accuracy"]), "gap_acc": gap,
         "train_loss": float(last["loss"]), "val_loss": float(last["val_loss"]),
         "best_epoch": best_epoch, "val_loss_drift": drift, "verdict": verdict,
+        "kept_epoch": int(last["epoch"]),
     }
 
 

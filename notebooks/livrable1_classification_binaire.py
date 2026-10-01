@@ -45,9 +45,11 @@
 # | 11 | Conclusion, limites et suites |
 #
 # ### Comment relancer
-# `Kernel → Restart & Run All`. Les images sont extraites des archives et mises en cache dans `data/` à la première
-# exécution (quelques minutes), puis relues instantanément. `TOUNUM_QUICK=1` (variable d'environnement) lance une
-# version très courte (2 epochs) pour tester que tout s'exécute.
+# Ce notebook est conçu pour être exécuté par `bash scripts/run_notebook.sh full` (régénération du `.ipynb` depuis ce
+# fichier `.py`, puis exécution complète). Pour l'ouvrir de façon interactive : `uv run --with jupyterlab jupyter lab`.
+# Les images sont extraites des archives et mises en cache dans `data/` à la première exécution (quelques minutes),
+# puis relues instantanément. `TOUNUM_QUICK=1` (ou `bash scripts/run_notebook.sh quick`) lance une version très courte
+# (2 epochs) pour tester que tout s'exécute ; elle écrit un fichier séparé `.quick.ipynb` et ne touche jamais au livrable.
 
 # %% [markdown]
 # ## 1. Environnement et reproductibilité
@@ -57,6 +59,7 @@ import os
 import sys
 import time
 import inspect
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")      # moins de bruit TensorFlow
@@ -95,8 +98,8 @@ print(f"Graine : {config.SEED} | mode QUICK : {QUICK} | epochs : {EPOCHS}")
 # %% [markdown]
 # > **Reproductibilité.** Toutes les sources d'aléa (tirage des images, découpage, initialisation des poids,
 # > mélange des batchs) dépendent de la graine `SEED = 42`. Sur CPU, TensorFlow peut tout de même produire de très
-# > petites variations d'une exécution à l'autre (ordre des opérations parallèles) : les conclusions ne changent pas,
-# > mais les décimales peuvent bouger.
+# > petites variations d'une exécution à l'autre (ordre des opérations parallèles) : les décimales peuvent bouger, et
+# > un diagnostic proche d'un seuil peut basculer.
 
 # %% [markdown]
 # ## 2. Les données
@@ -121,13 +124,13 @@ summary["total tiré"] = summary.sum(axis=1)
 display(summary.loc[config.CLASSES])
 
 # %% [markdown]
-# **Pourquoi un échantillon et pas les ~42 000 images ?** Nous calculons sur CPU. Un échantillon équilibré de
+# **Pourquoi un échantillon et pas les ≈ 41 400 images ?** Nous calculons sur CPU. Un échantillon équilibré de
 # 6 000 images (3 000 photos / 3 000 non-photos) suffit largement pour une tâche de ce type et permet de multiplier
 # les expériences (comparaisons, régularisation) en un temps raisonnable. Les effectifs sont réglables dans
 # `src/tounum_cls/config.py` (`POOL_COUNTS`, `EXT_COUNTS`).
 #
 # - Le **pool** est équilibré 50/50 ; les peintures y sont sur-représentées (1 200) car c'est la classe la plus difficile.
-# - Le **test étendu** (`ext`) n'est **jamais** utilisé pour entraîner ni pour choisir un modèle. Il est *déséquilibré*
+# - Le **test étendu** (`ext`) n'est **jamais** utilisé pour entraîner ni pour choisir un modèle ou un seuil. Il est *déséquilibré*
 #   (≈ 21 % de photos) pour estimer les performances sur un fonds documentaire réel.
 
 # %% [markdown]
@@ -202,8 +205,8 @@ plt.show()
 # |---|---|---|
 # | `train` | 70 % | apprendre les poids du réseau |
 # | `val` (validation) | 15 % | suivre l'apprentissage epoch par epoch, régler / choisir le modèle. **C'est « l'erreur de test » des courbes de la section 6** |
-# | `test` | 15 % | mesure finale, utilisée **une seule fois** à la fin (sections 4 et 9) |
-# | `ext` | — | test étendu déséquilibré, hors pool |
+# | `test` | 15 % | mesure finale : utilisé uniquement pour mesurer, jamais pour entraîner, choisir un modèle ou régler un seuil (sections 4 et 9) |
+# | `ext` | — | test étendu déséquilibré, hors pool, avec le même usage que `test` (mesure uniquement) |
 #
 # > Si l'on choisissait le modèle en regardant le jeu de test, on lui « fuiterait » de l'information et l'accuracy
 # > affichée serait trop optimiste. D'où la séparation validation / test.
@@ -387,8 +390,9 @@ print(f"Total : {baseline.count_params():,} paramètres — entraînables : {tra
 # - **CNN plutôt que réseau dense** : le partage des filtres exploite la structure 2D de l'image avec très peu de
 #   paramètres (≈ 106 k, contre des millions pour un réseau dense sur 128×128×3 pixels).
 # - **Petit réseau** : la tâche est une décision globale simple, et nous calculons sur CPU.
-# - **Justification par les résultats** : sections 7 (le modèle n'est ni trop simple ni trop complexe), 8 et 10
-#   (comparaison avec un réseau pré-entraîné bien plus gros).
+# - **Justification par les résultats** : la section 7 compare ce réseau à une version beaucoup plus petite et à une
+#   version plus grande, la section 10 à un réseau pré-entraîné de plusieurs millions de paramètres ; les conclusions
+#   chiffrées figurent dans les lectures automatiques de ces sections.
 
 # %% [markdown]
 # ## 6. Entraînement et courbes d'apprentissage
@@ -443,6 +447,10 @@ display(Markdown(
 # - L'objectif est le bon compromis : les deux erreurs sont basses et proches.
 #
 # Un modèle plus **complexe** réduit le biais mais augmente la variance. Nous le vérifions de deux façons.
+#
+# Les diagnostics automatiques utilisent des seuils fixes (accuracy d'entraînement < 0,90 → biais ; écart
+# train−validation > 0,05 ou remontée de la perte de validation > 0,05 → variance) : un cas proche d'un seuil peut
+# basculer d'une exécution à l'autre.
 #
 # ### 7.1 Trois niveaux de capacité du modèle
 # Même données, même procédure ; seule la taille du réseau change.
@@ -517,6 +525,15 @@ plt.show()
 
 # %%
 small, big = curve_df.iloc[0], curve_df.iloc[-1]
+delta_big = cap_df.loc["trop complexe", "acc val"] - cap_df.loc["baseline", "acc val"]
+ratio_big = cap_df.loc["trop complexe", "paramètres"] / cap_df.loc["baseline", "paramètres"]
+delta_small = cap_df.loc["trop simple", "acc val"] - cap_df.loc["baseline", "acc val"]
+capacity_note = (
+    f" Multiplier les paramètres par {ratio_big:.1f} change l'accuracy de validation de {delta_big:+.3f}"
+    + (" : la capacité de la baseline suffit pour cette tâche." if abs(delta_big) < 0.01
+       else (" : le plus gros modèle est meilleur." if delta_big > 0 else " : le plus gros modèle est moins bon."))
+    + f" Le modèle « trop simple » est à {delta_small:+.3f} de la baseline."
+)
 display(Markdown(
     "**Lecture automatique.** "
     f"Capacité : le modèle « trop simple » ({cap_df.loc['trop simple', 'paramètres']:,} paramètres) atteint "
@@ -528,6 +545,7 @@ display(Markdown(
     f"Courbe d'apprentissage : avec {int(small['n_train'])} images, l'écart train − validation est "
     f"{small['acc train'] - small['acc val']:+.3f} ; avec {int(big['n_train'])} images, il est "
     f"{big['acc train'] - big['acc val']:+.3f}."
+    + capacity_note
 ))
 
 # %% [markdown]
@@ -535,8 +553,6 @@ display(Markdown(
 # régime de **variance** : plus de données (ou une régularisation) aident. Un modèle dont l'accuracy d'entraînement
 # elle-même est insuffisante est dans un régime de **biais** : il faut alors plus de capacité ou plus d'epochs, pas
 # plus de données. Les valeurs affichées ci-dessus indiquent dans quel régime se trouve chaque configuration.
-# La baseline retenue est un compromis : assez de paramètres (≈ 106 k) pour séparer les photos des peintures, sans
-# la capacité excessive du gros modèle. Les techniques de la section suivante réduisent encore la variance.
 
 # %% [markdown]
 # ## 8. Améliorer le compromis biais / variance
@@ -576,14 +592,27 @@ for name, cfg in IMPROVEMENTS.items():
     else:
         model, hist, sec = run(FINAL_SPLIT, cfg["epochs"], early_stopping=cfg["es"], patience=5, **cfg["kwargs"])
     imp_hist[name], imp_models[name] = hist, model
-    d = evaluation.diagnose_fit(hist)
+    d = evaluation.diagnose_fit(hist, restored_best=cfg["es"])  # early stopping : poids restaurés = meilleure epoch
     val_metrics = model.evaluate(data.make_dataset(Xva, yva), verbose=0, return_dict=True)  # poids FINAUX du modèle
-    imp_rows.append({"configuration": name, "epochs faits": len(hist), "acc train": d["train_acc"],
-                     "écart train−val": d["gap_acc"], "loss val (modèle final)": val_metrics["loss"],
+    imp_rows.append({"configuration": name, "epochs faits": len(hist), "epoch retenue": d["kept_epoch"],
+                     "acc train (epoch retenue)": d["train_acc"],
+                     "écart train−val (epoch retenue)": d["gap_acc"], "loss val (modèle final)": val_metrics["loss"],
                      "acc val (modèle final)": val_metrics["accuracy"], "diagnostic": d["verdict"],
                      "durée (s)": round(sec)})
 imp_df = pd.DataFrame(imp_rows).set_index("configuration")
 display(imp_df)
+
+# %%
+base = imp_df.loc["baseline"]
+others = imp_df.drop(index="baseline")
+lower_loss = others.index[others["loss val (modèle final)"] < base["loss val (modèle final)"]].tolist()
+higher_acc = others.index[others["acc val (modèle final)"] > base["acc val (modèle final)"]].tolist()
+display(Markdown("**Lecture automatique.** Par rapport à la baseline (perte de validation "
+    f"{base['loss val (modèle final)']:.3f}, accuracy {base['acc val (modèle final)']:.3f}), "
+    f"perte de validation plus basse : {', '.join(lower_loss) or 'aucune configuration'} ; "
+    f"accuracy de validation plus haute : {', '.join(higher_acc) or 'aucune configuration'}. "
+    + (f"Les configurations avec early stopping disposent de {EPOCHS['improve']} epochs au lieu de {EPOCHS['main']} : "
+       "la comparaison n'est donc pas à budget égal." if EPOCHS["improve"] != EPOCHS["main"] else "")))
 
 # %%
 fig, axes = plt.subplots(1, 2, figsize=(13, 4))
@@ -617,11 +646,14 @@ final_hist = imp_hist[best_name]
 # %%
 evaluation.plot_history(final_hist, f"Modèle retenu ({best_name})")
 plt.show()
-d = evaluation.diagnose_fit(final_hist)
+d = evaluation.diagnose_fit(final_hist, restored_best=IMPROVEMENTS[best_name]["es"])
+kept_kwargs = IMPROVEMENTS[best_name]["kwargs"]
+reg_note = (" Rappel : avec dropout et augmentation, l'accuracy d'entraînement est mesurée *avec* ces "
+            "perturbations actives, donc plus basse que ce qu'elle serait en inférence."
+            if ("augmentation" in kept_kwargs or "dropout" in kept_kwargs) else "")
 display(Markdown(
-    f"Diagnostic du modèle retenu : accuracy entraînement {d['train_acc']:.3f}, validation {d['val_acc']:.3f}, "
-    f"→ **{d['verdict']}**. Rappel : avec dropout et augmentation, l'accuracy d'entraînement est mesurée *avec* ces "
-    "perturbations actives, donc plus basse que ce qu'elle serait en inférence."
+    f"Diagnostic du modèle retenu (epoch retenue : {d['kept_epoch']}) : accuracy entraînement {d['train_acc']:.3f}, "
+    f"validation {d['val_acc']:.3f}, → **{d['verdict']}**." + reg_note
 ))
 
 
@@ -629,7 +661,8 @@ display(Markdown(
 # ## 9. Évaluation finale
 #
 # On utilise maintenant le jeu **`test`** (équilibré, jamais vu) et le **test étendu `ext`** (déséquilibré, réaliste),
-# **une seule fois**, avec le modèle retenu en section 8.
+# **utilisés uniquement pour mesurer, jamais pour entraîner, choisir un modèle ou régler un seuil**, avec le modèle
+# retenu en section 8.
 
 # %%
 Xe, ye, me = data.select(X, meta, "ext")
@@ -686,7 +719,9 @@ else:
 # ### 9.2 Choix du seuil de décision
 # Le seuil 0,5 est un défaut. Pour TouNum, **laisser passer une non-photo** (faux positif, baisse de précision) et
 # **perdre une photo** (faux négatif, baisse du rappel) n'ont pas le même coût : le bon seuil est une décision
-# métier. Le tableau ci-dessous aide à le choisir sur le test étendu, où les photos sont minoritaires.
+# métier. Le tableau ci-dessous est **descriptif** : il montre, sur le test étendu où les photos sont minoritaires,
+# comment précision et rappel évoluent avec le seuil. Un seuil de production doit être fixé sur des données de
+# validation (ou de nouvelles données) puis confirmé, et non réglé sur ce tableau, qui est un jeu de mesure.
 
 # %%
 rows = []
@@ -718,12 +753,16 @@ display(Markdown(
 # La fonction `data.load_image` fait la conversion (RGB + redimensionnement) depuis n'importe quel fichier jpg / png.
 
 # %%
-MODEL_PATH = config.PROJECT_ROOT / "models" / "cnn_photo_final.keras"
+if QUICK:  # le mode QUICK ne touche jamais au modèle livré
+    MODEL_PATH = Path(tempfile.gettempdir()) / "cnn_photo_quick.keras"
+else:
+    MODEL_PATH = config.PROJECT_ROOT / "models" / "cnn_photo_final.keras"
 MODEL_PATH.parent.mkdir(exist_ok=True)
 final_model.save(MODEL_PATH)
 reloaded = keras.models.load_model(MODEL_PATH)
 assert np.allclose(reloaded.predict(Xte[:32], verbose=0), final_model.predict(Xte[:32], verbose=0), atol=1e-5)
-print(f"Modèle sauvegardé : {MODEL_PATH.relative_to(config.PROJECT_ROOT)} ({MODEL_PATH.stat().st_size / 1e6:.1f} Mo) — rechargement vérifié.")
+shown_path = MODEL_PATH.relative_to(config.PROJECT_ROOT) if MODEL_PATH.is_relative_to(config.PROJECT_ROOT) else MODEL_PATH
+print(f"Modèle sauvegardé : {shown_path} ({MODEL_PATH.stat().st_size / 1e6:.1f} Mo) — rechargement vérifié.")
 
 
 def predict_photo(model, paths, threshold=0.5):
@@ -750,7 +789,7 @@ display(out)
 def summarize(model, name):
     row = {"modèle": name, "paramètres": model.count_params(),
            "entraînables": int(sum(np.prod(w.shape) for w in model.trainable_weights))}
-    for label, (Xs, ys, ms) in {"test": (Xte, yte, mte), "ext": (Xe, ye, me)}.items():
+    for label, (Xs, ys, ms) in {"val": (Xva, yva, mva), "test": (Xte, yte, mte), "ext": (Xe, ye, me)}.items():
         p = modeling.predict_proba(model, Xs)
         r = evaluation.evaluate_binary(ys, p)
         row[f"{label} accuracy"], row[f"{label} F1"], row[f"{label} AUC"] = r["accuracy"], r["f1"], r["roc_auc"]
@@ -782,27 +821,46 @@ display(compare_df)
 # %%
 if len(compare_df) == 2:
     a, b = compare_df.iloc[0], compare_df.iloc[1]
-    gain = b["ext accuracy"] - a["ext accuracy"]
+    gain = b["val accuracy"] - a["val accuracy"]  # verdict fondé sur la VALIDATION ; test et ext restent des mesures
     ratio = b["paramètres"] / a["paramètres"]
     if gain > 0.02:
-        verdict = (f"MobileNetV2 est nettement plus précis (+{gain:.3f} d'accuracy sur le test étendu) avec {ratio:.0f} fois plus "
+        verdict = (f"MobileNetV2 obtient une meilleure accuracy de validation (+{gain:.3f}) avec {ratio:.0f} fois plus "
                    "de paramètres. Si TouNum accepte un modèle plus lourd et la dépendance à des poids pré-entraînés, c'est le "
                    "meilleur candidat pour la production ; le CNN maison reste une base légère, autonome et entièrement maîtrisée.")
     elif gain < -0.02:
-        verdict = (f"Le CNN maison fait mieux (+{-gain:.3f} d'accuracy sur le test étendu) avec {ratio:.0f} fois moins de "
+        verdict = (f"Le CNN maison obtient une meilleure accuracy de validation (+{-gain:.3f}) avec {ratio:.0f} fois moins de "
                    "paramètres : il est retenu.")
     else:
-        verdict = ("Performances comparables (écart < 0,02) : le CNN maison, plus léger et autonome, suffit.")
+        verdict = ("Accuracy de validation comparable (écart < 0,02) : le CNN maison, plus léger et autonome, suffit.")
     display(Markdown(
-        f"**Lecture automatique.** CNN maison : {int(a['paramètres']):,} paramètres, accuracy test {a['test accuracy']:.3f} / "
-        f"ext {a['ext accuracy']:.3f}, peintures {a['ext acc. Painting']:.3f}. MobileNetV2 : {int(b['paramètres']):,} "
-        f"paramètres ({int(b['entraînables']):,} entraînables), accuracy test {b['test accuracy']:.3f} / "
-        f"ext {b['ext accuracy']:.3f}, peintures {b['ext acc. Painting']:.3f}. **{verdict}**"
+        f"**Lecture automatique.** CNN maison : {int(a['paramètres']):,} paramètres, accuracy validation {a['val accuracy']:.3f} / "
+        f"test {a['test accuracy']:.3f} / ext {a['ext accuracy']:.3f}, peintures {a['ext acc. Painting']:.3f}. "
+        f"MobileNetV2 : {int(b['paramètres']):,} paramètres ({int(b['entraînables']):,} entraînables), accuracy validation "
+        f"{b['val accuracy']:.3f} / test {b['test accuracy']:.3f} / ext {b['ext accuracy']:.3f}, peintures "
+        f"{b['ext acc. Painting']:.3f}. **{verdict}** (Le verdict repose sur la validation ; les accuracy test et ext "
+        "sont des mesures affichées pour information.)"
     ))
 
 # %% [markdown]
 # ## 11. Conclusion, limites et suites
 #
+# ### Synthèse chiffrée
+# Les chiffres ci-dessous sont recalculés à chaque exécution à partir des résultats des sections précédentes.
+
+# %%
+worst_src = per_src_ext.iloc[0]
+mnet_note = (f" Comparaison avec MobileNetV2 (section 10) : {verdict}" if len(compare_df) == 2
+             else " La comparaison avec MobileNetV2 n'a pas pu être exécutée.")
+display(Markdown(
+    f"**Synthèse chiffrée.** Configuration retenue (sélection sur la validation) : **« {best_name} »**, "
+    f"epoch retenue {d['kept_epoch']}. Accuracy : validation **{imp_df.loc[best_name, 'acc val (modèle final)']:.3f}**, "
+    f"test **{res_t['accuracy']:.3f}**, test étendu **{res_e['accuracy']:.3f}**. "
+    f"Sur le test étendu : précision **{res_e['precision']:.3f}**, rappel **{res_e['recall']:.3f}**. "
+    f"Type d'image le moins bien classé (test étendu) : **{worst_src['source']}** (accuracy {worst_src['accuracy']:.3f})."
+    + mnet_note
+))
+
+# %% [markdown]
 # ### Ce qui a été réalisé
 # 1. Un **workflow reproductible de la donnée brute au modèle** : inventaire des archives, échantillonnage disjoint,
 #    extraction sélective, normalisation (RGB, 128×128), cache, découpage stratifié.
@@ -810,12 +868,12 @@ if len(compare_df) == 2:
 #    de difficulté croissante (section 4), et comparé à un réseau pré-entraîné (section 10, dont la conclusion
 #    indique quel modèle retenir en production).
 # 3. Une **analyse biais/variance** chiffrée (sections 6 à 8) et une comparaison de techniques de régularisation.
-# 4. Une **évaluation honnête** sur un jeu de test jamais utilisé, équilibré et réaliste (section 9), avec analyse des
+# 4. Une **évaluation honnête** sur un jeu de test jamais utilisé pour entraîner ni pour choisir un modèle, équilibré et réaliste (section 9), avec analyse des
 #    erreurs et choix du seuil.
 # 5. Un **modèle sauvegardé** (`models/cnn_photo_final.keras`) et une fonction d'inférence (`predict_photo`).
 #
 # ### Limites et esprit critique
-# - **Échantillon** : 6 000 images de modélisation sur ~42 000 disponibles ; les performances sur la totalité pourraient
+# - **Échantillon** : 6 000 images de modélisation sur ≈ 41 400 disponibles ; les performances sur la totalité pourraient
 #   être légèrement meilleures. Les effectifs se règlent dans `config.py`.
 # - **Résolution 128×128 et étirement** : on perd les détails fins (utiles pour distinguer une peinture réaliste d'une
 #   photo) et on déforme les pages allongées.
@@ -827,6 +885,8 @@ if len(compare_df) == 2:
 # - **Qualité d'image** : toutes les images d'entraînement sont de qualité correcte. Le livrable 2 (débruitage) devra
 #   vérifier que le filtre reste performant sur des images bruitées ou floues.
 # - **Reproductibilité** : de petites variations numériques sont possibles d'une machine à l'autre.
+# - **Modèle livré** : le modèle sauvegardé (`models/cnn_photo_final.keras`) est le CNN maison ; le choix du modèle de
+#   production (CNN ou MobileNetV2) est discuté section 10.
 #
 # ### Pistes pour la suite
 # - Entraîner sur la totalité des archives et à plus haute résolution (GPU) ;
