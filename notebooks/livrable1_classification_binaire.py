@@ -430,3 +430,196 @@ display(Markdown(
 # - Si la perte d'entraînement continue de baisser alors que celle de validation remonte, le réseau **mémorise**
 #   (sur-apprentissage).
 # - Si les deux courbes stagnent haut, le réseau est **trop simple** ou insuffisamment entraîné (sous-apprentissage).
+
+
+# %% [markdown]
+# ## 7. Analyse du compromis biais / variance
+#
+# **Rappel.**
+# - **Biais élevé = sous-apprentissage** : le modèle est trop rigide pour capturer la structure des données ; l'erreur est
+#   élevée *à la fois* sur l'entraînement et sur la validation.
+# - **Variance élevée = sur-apprentissage** : le modèle s'adapte au bruit des données d'entraînement ; l'erreur
+#   d'entraînement est faible mais celle de validation est nettement plus haute (grand écart).
+# - L'objectif est le bon compromis : les deux erreurs sont basses et proches.
+#
+# Un modèle plus **complexe** réduit le biais mais augmente la variance. Nous le vérifions de deux façons.
+#
+# ### 7.1 Trois niveaux de capacité du modèle
+# Même données, même procédure ; seule la taille du réseau change.
+
+# %%
+CAPACITY = {
+    "trop simple": dict(filters=(4, 8), dense_units=4),
+    "baseline": dict(),
+    "trop complexe": dict(filters=(32, 64, 128, 256), dense_units=256),
+}
+cap_hist, cap_models, cap_rows = {"baseline": baseline_hist}, {"baseline": baseline_model}, []
+for name, kwargs in CAPACITY.items():
+    if name == "baseline":
+        model, hist, sec = baseline_model, baseline_hist, baseline_sec
+    else:
+        model, hist, sec = run(FINAL_SPLIT, EPOCHS["main"], **kwargs)
+        cap_hist[name], cap_models[name] = hist, model
+    d = evaluation.diagnose_fit(hist)
+    cap_rows.append({"modèle": name, "paramètres": model.count_params(), "acc train": d["train_acc"],
+                     "acc val": d["val_acc"], "écart": d["gap_acc"], "loss val min": hist["val_loss"].min(),
+                     "epoch du min": d["best_epoch"], "diagnostic": d["verdict"]})
+cap_df = pd.DataFrame(cap_rows).set_index("modèle")
+display(cap_df)
+
+# %%
+fig, axes = plt.subplots(1, 2, figsize=(12, 3.8))
+for name, hist in cap_hist.items():
+    line, = axes[0].plot(hist["epoch"], hist["loss"], ls="--")
+    axes[0].plot(hist["epoch"], hist["val_loss"], color=line.get_color(), label=name)
+    line, = axes[1].plot(hist["epoch"], hist["accuracy"], ls="--")
+    axes[1].plot(hist["epoch"], hist["val_accuracy"], color=line.get_color(), label=name)
+axes[0].set_title("Perte (pointillé : train, plein : validation)")
+axes[1].set_title("Accuracy (pointillé : train, plein : validation)")
+for ax in axes:
+    ax.set_xlabel("epoch")
+    ax.legend()
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
+# ### 7.2 Courbe d'apprentissage : que se passe-t-il avec plus de données ?
+# On entraîne la baseline sur une fraction croissante du jeu d'entraînement (stratifiée par classe) et on compare
+# l'accuracy finale d'entraînement et de validation. Un **grand écart qui se resserre avec plus de données**
+# est le signe d'une variance qu'on peut réduire en collectant des images ; deux courbes **proches mais basses** signalent
+# un biais que plus de données ne corrigera pas.
+
+# %%
+from sklearn.model_selection import train_test_split
+
+curve_rows = []
+for frac in (0.1, 0.25, 0.5, 1.0):
+    if frac < 1.0:
+        keep, _ = train_test_split(np.arange(len(ytr)), train_size=frac, stratify=mtr["source"], random_state=config.SEED)
+    else:
+        keep = np.arange(len(ytr))
+    sub = {"train": (Xtr[keep], ytr[keep], mtr.iloc[keep]), "val": FINAL_SPLIT["val"], "test": FINAL_SPLIT["test"]}
+    _, hist, _ = run(sub, EPOCHS["curve"])
+    d = evaluation.diagnose_fit(hist)
+    curve_rows.append({"fraction": frac, "n_train": len(keep), "acc train": d["train_acc"], "acc val": d["val_acc"]})
+curve_df = pd.DataFrame(curve_rows).set_index("fraction")
+display(curve_df)
+
+fig, ax = plt.subplots(figsize=(6, 3.8))
+ax.plot(curve_df["n_train"], curve_df["acc train"], marker="o", label="entraînement")
+ax.plot(curve_df["n_train"], curve_df["acc val"], marker="o", label="validation")
+ax.set_xlabel("nombre d'images d'entraînement")
+ax.set_ylabel("accuracy (dernière epoch)")
+ax.set_title("Courbe d'apprentissage (baseline)")
+ax.legend()
+plt.tight_layout()
+plt.show()
+
+# %%
+small, big = curve_df.iloc[0], curve_df.iloc[-1]
+display(Markdown(
+    "**Lecture automatique.** "
+    f"Capacité : le modèle « trop simple » ({cap_df.loc['trop simple', 'paramètres']:,} paramètres) atteint "
+    f"{cap_df.loc['trop simple', 'acc val']:.3f} en validation, la baseline ({cap_df.loc['baseline', 'paramètres']:,}) "
+    f"{cap_df.loc['baseline', 'acc val']:.3f} et le modèle « trop complexe » "
+    f"({cap_df.loc['trop complexe', 'paramètres']:,}) {cap_df.loc['trop complexe', 'acc val']:.3f}. "
+    f"Diagnostics : trop simple → *{cap_df.loc['trop simple', 'diagnostic']}* ; baseline → "
+    f"*{cap_df.loc['baseline', 'diagnostic']}* ; trop complexe → *{cap_df.loc['trop complexe', 'diagnostic']}*. "
+    f"Courbe d'apprentissage : avec {int(small['n_train'])} images, l'écart train − validation est "
+    f"{small['acc train'] - small['acc val']:+.3f} ; avec {int(big['n_train'])} images, il est "
+    f"{big['acc train'] - big['acc val']:+.3f}."
+))
+
+# %% [markdown]
+# **Interprétation.** Un écart qui se réduit quand le nombre d'images augmente montre que l'on est dans un
+# régime de **variance** : plus de données (ou une régularisation) aident. Un modèle dont l'accuracy d'entraînement
+# elle-même est insuffisante est dans un régime de **biais** : il faut alors plus de capacité ou plus d'epochs, pas
+# plus de données. Les valeurs affichées ci-dessus indiquent dans quel régime se trouve chaque configuration.
+# La baseline retenue est un compromis : assez de paramètres (≈ 106 k) pour séparer les photos des peintures, sans
+# la capacité excessive du gros modèle. Les techniques de la section suivante réduisent encore la variance.
+
+# %% [markdown]
+# ## 8. Améliorer le compromis biais / variance
+#
+# ### 8.1 Les méthodes disponibles
+#
+# | Méthode | Principe | Effet attendu | Dans ce notebook |
+# |---|---|---|---|
+# | **Plus de données** | davantage d'exemples = moins de mémorisation | ↓ variance | limité à l'échantillon (voir 7.2) |
+# | **Augmentation de données** | transformations aléatoires (flip, rotation, zoom, contraste) à chaque epoch : le réseau ne voit jamais deux fois exactement la même image | ↓ variance | oui |
+# | **Dropout** | éteint aléatoirement une fraction des neurones à chaque pas : empêche les co-adaptations | ↓ variance | oui (0,4) |
+# | **Régularisation L2** (*weight decay*) | ajoute $\lambda \sum w^2$ à la perte : pénalise les gros poids, lisse le modèle | ↓ variance | oui ($\lambda = 10^{-4}$) |
+# | **Early stopping** | arrête l'entraînement quand la perte de validation cesse de s'améliorer et restaure les meilleurs poids | ↓ variance | oui (patience 5) |
+# | **Réduire la capacité** | moins de couches / de filtres | ↓ variance, ↑ biais | cf. 7.1 |
+# | **BatchNormalization** | normalise les activations ; effet régularisant léger | stabilité | déjà dans le réseau |
+# | **Plus de capacité / plus d'epochs** | plus de filtres, apprentissage plus long | ↓ biais | cf. 7.1 |
+# | **Taux d'apprentissage adaptatif** | réduire le pas quand la validation stagne (`ReduceLROnPlateau`) | convergence plus fine | non retenu |
+# | **Transfert d'apprentissage** | partir d'un réseau pré-entraîné (ImageNet) | ↓ biais et variance avec peu de données | section 10 |
+#
+# ### 8.2 Expériences
+# Même problème (étape 4), même graine. On compare chaque technique **seule**, puis **combinées avec early stopping**.
+# L'early stopping est évalué avec un budget d'epochs plus large (il choisira lui-même quand s'arrêter).
+
+# %%
+IMPROVEMENTS = {
+    "baseline": dict(kwargs=dict(), epochs=EPOCHS["main"], es=False),
+    "+ augmentation": dict(kwargs=dict(augmentation=True), epochs=EPOCHS["main"], es=False),
+    "+ dropout 0,4": dict(kwargs=dict(dropout=0.4), epochs=EPOCHS["main"], es=False),
+    "+ L2 1e-4": dict(kwargs=dict(l2=1e-4), epochs=EPOCHS["main"], es=False),
+    "+ early stopping": dict(kwargs=dict(), epochs=EPOCHS["improve"], es=True),
+    "tout combiné": dict(kwargs=dict(augmentation=True, dropout=0.4, l2=1e-4), epochs=EPOCHS["improve"], es=True),
+}
+imp_hist, imp_models, imp_rows = {}, {}, []
+for name, cfg in IMPROVEMENTS.items():
+    if name == "baseline":
+        model, hist, sec = baseline_model, baseline_hist, baseline_sec
+    else:
+        model, hist, sec = run(FINAL_SPLIT, cfg["epochs"], early_stopping=cfg["es"], patience=5, **cfg["kwargs"])
+    imp_hist[name], imp_models[name] = hist, model
+    d = evaluation.diagnose_fit(hist)
+    val_metrics = model.evaluate(data.make_dataset(Xva, yva), verbose=0, return_dict=True)  # poids FINAUX du modèle
+    imp_rows.append({"configuration": name, "epochs faits": len(hist), "acc train": d["train_acc"],
+                     "écart train−val": d["gap_acc"], "loss val (modèle final)": val_metrics["loss"],
+                     "acc val (modèle final)": val_metrics["accuracy"], "diagnostic": d["verdict"],
+                     "durée (s)": round(sec)})
+imp_df = pd.DataFrame(imp_rows).set_index("configuration")
+display(imp_df)
+
+# %%
+fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+for name, hist in imp_hist.items():
+    axes[0].plot(hist["epoch"], hist["val_loss"], label=name)
+    axes[1].plot(hist["epoch"], hist["val_accuracy"], label=name)
+axes[0].set_title("Perte de validation")
+axes[1].set_title("Accuracy de validation")
+for ax in axes:
+    ax.set_xlabel("epoch")
+axes[0].set_ylim(top=min(1.5, axes[0].get_ylim()[1]))
+axes[1].legend(fontsize=8)
+plt.tight_layout()
+plt.show()
+
+# %%
+best_name = imp_df["loss val (modèle final)"].idxmin()
+display(Markdown(
+    f"**Sélection du modèle (sur la validation uniquement).** La configuration avec la plus faible perte de validation "
+    f"est **« {best_name} »** (loss {imp_df.loc[best_name, 'loss val (modèle final)']:.4f}, "
+    f"accuracy {imp_df.loc[best_name, 'acc val (modèle final)']:.3f}) ; la baseline obtient "
+    f"{imp_df.loc['baseline', 'loss val (modèle final)']:.4f} / {imp_df.loc['baseline', 'acc val (modèle final)']:.3f}. "
+    "Ce modèle est celui évalué sur le jeu de test à la section suivante."
+))
+final_model = imp_models[best_name]
+final_hist = imp_hist[best_name]
+
+# %% [markdown]
+# **Courbes du modèle retenu** (entraînement vs validation, pour la perte et l'accuracy) :
+
+# %%
+evaluation.plot_history(final_hist, f"Modèle retenu ({best_name})")
+plt.show()
+d = evaluation.diagnose_fit(final_hist)
+display(Markdown(
+    f"Diagnostic du modèle retenu : accuracy entraînement {d['train_acc']:.3f}, validation {d['val_acc']:.3f}, "
+    f"→ **{d['verdict']}**. Rappel : avec dropout et augmentation, l'accuracy d'entraînement est mesurée *avec* ces "
+    "perturbations actives, donc plus basse que ce qu'elle serait en inférence."
+))
