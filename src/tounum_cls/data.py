@@ -102,3 +102,101 @@ def extract_files(
                 paths.loc[idx] = str(dest)
     out["path"] = paths
     return out
+
+
+# --------------------------------------------------------------------------- chargement
+def load_image(path: str | Path, size: int = config.IMG_SIZE) -> np.ndarray:
+    """Charge une image avec ImageIO et la renvoie en (size, size, 3) uint8 RGB.
+
+    Gère niveaux de gris (2D ou 1 canal), RGBA (alpha supprimé) et profondeur 16 bits.
+    Le redimensionnement (bilinéaire) ne conserve pas le ratio : l'image est étirée.
+    """
+    arr = np.asarray(iio.imread(path))
+    if arr.dtype != np.uint8:
+        arr = (arr.astype(np.float64) / (65535.0 if arr.dtype == np.uint16 else 1.0)) * 255.0
+        arr = np.clip(arr, 0, 255).astype(np.uint8)
+    if arr.ndim == 2:
+        arr = np.stack([arr] * 3, axis=-1)
+    elif arr.shape[-1] == 1:
+        arr = np.repeat(arr, 3, axis=-1)
+    elif arr.shape[-1] == 2:                       # gris + alpha
+        arr = np.repeat(arr[..., :1], 3, axis=-1)
+    elif arr.shape[-1] == 4:                       # RGBA
+        arr = arr[..., :3]
+    img = Image.fromarray(arr).resize((size, size), Image.BILINEAR)
+    return np.asarray(img, dtype=np.uint8)
+
+
+def load_images(
+    meta: pd.DataFrame, size: int = config.IMG_SIZE, workers: int | None = None
+) -> tuple[np.ndarray, pd.DataFrame]:
+    """Charge toutes les images de meta['path'] (en parallèle).
+
+    Renvoie (X, meta_ok) : les images illisibles sont écartées (et signalées par un print).
+    X.shape == (len(meta_ok), size, size, 3), dtype uint8, aligné ligne à ligne avec meta_ok.
+    """
+    def _safe(path):
+        try:
+            return load_image(path, size)
+        except Exception as exc:  # image corrompue : on l'écarte
+            print(f"[WARN] image illisible ignorée : {path} ({type(exc).__name__}: {exc})")
+            return None
+
+    workers = workers or min(8, os.cpu_count() or 1)
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        results = list(ex.map(_safe, meta["path"].tolist()))
+    keep = [r is not None for r in results]
+    meta_ok = meta[keep].reset_index(drop=True)
+    X = np.stack([r for r in results if r is not None]).astype(np.uint8)
+    return X, meta_ok
+
+
+# --------------------------------------------------------------------------- découpage
+def add_split(meta: pd.DataFrame, seed: int = config.SEED) -> pd.DataFrame:
+    """Ajoute la colonne `split` : train/val/test (70/15/15, stratifié par classe source) pour le pool,
+    'ext' pour le test étendu."""
+    meta = meta.copy()
+    meta["split"] = "ext"
+    pool_idx = meta.index[meta["subset"] == "pool"]
+    train_idx, tmp_idx = train_test_split(
+        pool_idx, test_size=0.30, stratify=meta.loc[pool_idx, "source"], random_state=seed
+    )
+    val_idx, test_idx = train_test_split(
+        tmp_idx, test_size=0.50, stratify=meta.loc[tmp_idx, "source"], random_state=seed
+    )
+    meta.loc[train_idx, "split"] = "train"
+    meta.loc[val_idx, "split"] = "val"
+    meta.loc[test_idx, "split"] = "test"
+    assert not (set(meta.loc[train_idx, "member"]) & set(meta.loc[test_idx, "member"]))
+    return meta
+
+
+def select(
+    X: np.ndarray, meta: pd.DataFrame, split: str, sources: list[str] | None = None
+) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+    """Sous-ensemble (X, y, meta) d'un split, éventuellement limité à certaines classes sources.
+
+    Les photos sont toujours conservées ; `sources` ne liste que les classes NÉGATIVES voulues.
+    """
+    mask = meta["split"] == split
+    if sources is not None:
+        mask &= meta["source"].isin([config.POSITIVE_CLASS, *sources])
+    m = meta[mask]
+    return X[m.index.to_numpy()], m["label"].to_numpy().astype("float32"), m.reset_index(drop=True)
+
+
+def class_weights(y: np.ndarray) -> dict[int, float]:
+    """Poids 'balanced' : n / (2 * n_classe). Compense le déséquilibre des étapes 1 à 3."""
+    y = np.asarray(y).astype(int)
+    n = len(y)
+    return {c: n / (2.0 * max(1, int((y == c).sum()))) for c in (0, 1)}
+
+
+def make_dataset(X, y, batch_size=config.BATCH_SIZE, shuffle=False, seed=config.SEED):
+    """tf.data.Dataset (X uint8, y float32) -> batchs ; shuffle uniquement pour l'entraînement."""
+    import tensorflow as tf
+
+    ds = tf.data.Dataset.from_tensor_slices((X, np.asarray(y, dtype="float32")))
+    if shuffle:
+        ds = ds.shuffle(len(X), seed=seed, reshuffle_each_iteration=True)
+    return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)

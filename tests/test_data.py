@@ -60,3 +60,72 @@ def test_extract_files_writes_only_selected_and_is_idempotent(make_zip, tmp_path
     assert all(pd.Series(out["path"]).map(lambda p: os.path.exists(p)))
     assert len(list((raw / "Photo").glob("*"))) == 3
     data.extract_files(sample, tmp_path, raw)  # 2e appel sans erreur
+
+
+@pytest.mark.parametrize("mode,fmt", [("RGB", "JPEG"), ("L", "PNG"), ("RGBA", "PNG")])
+def test_load_image_always_rgb_uint8(tmp_path, mode, fmt):
+    arr = np.random.default_rng(0).integers(0, 255, (50, 70) + (() if mode == "L" else (4 if mode == "RGBA" else 3,)), dtype=np.uint8)
+    p = tmp_path / f"x.{fmt.lower()}"
+    Image.fromarray(arr, mode).save(p)
+    out = data.load_image(p, size=32)
+    assert out.shape == (32, 32, 3) and out.dtype == np.uint8
+
+
+def test_load_images_skips_corrupt(tmp_path, capsys):
+    good = tmp_path / "ok.jpg"
+    Image.fromarray(np.zeros((10, 10, 3), np.uint8)).save(good)
+    bad = tmp_path / "bad.jpg"
+    bad.write_bytes(b"not an image")
+    meta = pd.DataFrame({"path": [str(good), str(bad)], "label": [1, 0], "source": ["Photo", "Text"]})
+    X, meta_ok = data.load_images(meta, size=16, workers=2)
+    assert X.shape == (1, 16, 16, 3) and len(meta_ok) == 1
+    assert "illisible" in capsys.readouterr().out
+
+
+def _meta(n_per=40):
+    rows = []
+    for c in config.CLASSES:
+        for i in range(n_per):
+            rows.append({"member": f"{c}/{i}", "source": c, "label": int(c == "Photo"), "subset": "pool"})
+    for i in range(10):
+        rows.append({"member": f"ext/{i}", "source": "Text", "label": 0, "subset": "ext"})
+    return pd.DataFrame(rows)
+
+
+def test_add_split_proportions_stratified_and_disjoint():
+    m = data.add_split(_meta())
+    pool = m[m["subset"] == "pool"]
+    assert (m.loc[m["subset"] == "ext", "split"] == "ext").all()
+    counts = pool["split"].value_counts()
+    assert counts["train"] == 140 and counts["val"] == 30 and counts["test"] == 30
+    for c in config.CLASSES:  # stratifié par classe source
+        assert (pool[pool["source"] == c]["split"] == "train").sum() == 28
+    sets = [set(pool.loc[pool["split"] == s, "member"]) for s in ("train", "val", "test")]
+    assert not (sets[0] & sets[1]) and not (sets[0] & sets[2]) and not (sets[1] & sets[2])
+
+
+def test_select_filters_split_and_sources():
+    m = data.add_split(_meta())
+    X = np.arange(len(m))[:, None, None, None] * np.ones((1, 4, 4, 3), np.uint8)
+    Xs, ys, ms = data.select(X, m, "train", sources=["Text"])
+    assert set(ms["source"]) == {"Photo", "Text"}
+    assert len(Xs) == len(ys) == len(ms)
+    assert (ms["label"].to_numpy() == ys).all()
+    # X est bien aligné avec meta : la valeur du pixel = index de la ligne d'origine
+    orig = m[(m["split"] == "train") & m["source"].isin(["Photo", "Text"])].index.to_numpy()
+    assert (Xs[:, 0, 0, 0] == orig.astype(np.uint8)).all()
+    Xa, _, ma = data.select(X, m, "ext")
+    assert set(ma["split"]) == {"ext"}
+
+
+def test_class_weights_balanced():
+    w = data.class_weights(np.array([0] * 90 + [1] * 10))
+    assert w[1] == pytest.approx(5.0) and w[0] == pytest.approx(100 / 180)
+
+
+def test_make_dataset_batches():
+    X = np.zeros((10, 8, 8, 3), np.uint8)
+    y = np.arange(10) % 2
+    ds = data.make_dataset(X, y, batch_size=4, shuffle=True)
+    bx, by = next(iter(ds))
+    assert tuple(bx.shape) == (4, 8, 8, 3) and by.dtype.name == "float32"
