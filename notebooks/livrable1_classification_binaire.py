@@ -249,3 +249,66 @@ def run(split, epochs, early_stopping=False, patience=4, **model_kwargs):
         verbose=0,
     )
     return model, hist, time.perf_counter() - t0
+
+
+# %% [markdown]
+# ## 4. Progression par difficulté
+#
+# Le sujet recommande de commencer par les images les plus faciles à distinguer des photos. On entraîne donc **le même
+# réseau** (défini en section 5) sur quatre problèmes de difficulté croissante, en ajoutant à chaque étape un type
+# d'image « négatif » :
+#
+# | Étape | Photos opposées à… |
+# |---|---|
+# | 1 | textes scannés |
+# | 2 | textes + schémas |
+# | 3 | textes + schémas + sketchs |
+# | 4 | **textes + schémas + sketchs + peintures** (problème final) |
+#
+# Aux étapes 1 à 3, les photos sont plus nombreuses que les négatifs : on utilise des **poids de classe**
+# (`class_weight`) et, pour juger honnêtement, la **balanced accuracy** (moyenne du rappel sur chaque classe) plutôt que
+# l'accuracy brute. L'évaluation se fait sur le jeu `test` de l'étape (jamais vu à l'entraînement).
+
+# %%
+stage_rows, stage_per_source, stage_models = [], {}, {}
+for stage, negatives in config.STAGES.items():
+    split = get_split(negatives)
+    model, hist, seconds = run(split, EPOCHS["stage"], early_stopping=True, patience=3)
+    Xte, yte, mte = split["test"]
+    proba = modeling.predict_proba(model, Xte)
+    res = evaluation.evaluate_binary(yte, proba)
+    per_src = evaluation.per_source_accuracy(mte, proba)
+    worst = per_src.iloc[0]
+    stage_rows.append({
+        "étape": stage, "n_train": len(split["train"][1]), "epochs": len(hist), "durée (s)": round(seconds),
+        "balanced_acc": res["balanced_accuracy"], "précision": res["precision"], "rappel": res["recall"],
+        "F1": res["f1"], "ROC-AUC": res["roc_auc"], "classe la plus difficile": worst["source"],
+        "accuracy sur cette classe": worst["accuracy"],
+    })
+    stage_per_source[stage] = per_src.set_index("source")["accuracy"]
+    stage_models[stage] = model
+stage_df = pd.DataFrame(stage_rows).set_index("étape")
+display(stage_df)
+
+# %%
+fig, ax = plt.subplots(figsize=(9, 3.8))
+pd.DataFrame(stage_per_source).loc[config.CLASSES].plot.bar(ax=ax, rot=0)
+ax.set_ylim(0.5, 1.01)
+ax.set_ylabel("accuracy sur le jeu test de l'étape")
+ax.set_title("Accuracy par type d'image, selon l'étape de la progression")
+ax.legend(title="étape", fontsize=8)
+plt.tight_layout()
+plt.show()
+
+# %%
+last = stage_df.iloc[-1]
+first = stage_df.iloc[0]
+display(Markdown(
+    f"**Lecture automatique.** Étape 1 (photo vs texte) : balanced accuracy **{first['balanced_acc']:.3f}** ; "
+    f"étape 4 (toutes classes, peintures comprises) : **{last['balanced_acc']:.3f}**, F1 **{last['F1']:.3f}**. "
+    f"À l'étape 4, la classe la plus difficile est **{last['classe la plus difficile']}** "
+    f"(accuracy {last['accuracy sur cette classe']:.3f}). "
+    + ("Conforme à l'attente : les peintures réalistes, visuellement proches des photos, concentrent les erreurs."
+       if last["classe la plus difficile"] == "Painting"
+       else "Contrairement à l'attente, ce ne sont pas les peintures qui posent le plus de problèmes : à analyser.")
+))
