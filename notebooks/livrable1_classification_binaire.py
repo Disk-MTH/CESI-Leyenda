@@ -312,3 +312,121 @@ display(Markdown(
        if last["classe la plus difficile"] == "Painting"
        else "Contrairement à l'attente, ce ne sont pas les peintures qui posent le plus de problèmes : à analyser.")
 ))
+
+
+# %% [markdown]
+# ## 5. Architecture du réseau
+#
+# On utilise un **réseau de neurones convolutif (CNN)** conçu pour ce problème. Le code ci-dessous est celui qui est
+# réellement utilisé dans tout le notebook (`src/tounum_cls/modeling.py`).
+
+# %%
+print(inspect.getsource(modeling._compile))   # perte, optimiseur, métriques
+print(inspect.getsource(modeling.build_cnn))  # architecture
+
+# %%
+baseline = modeling.build_cnn()
+baseline.summary()
+
+# %%
+fig = evaluation.draw_architecture(baseline)
+plt.show()
+
+# %% [markdown]
+# ### 5.1 Rôle de chaque couche
+#
+# | Couche | Rôle |
+# |---|---|
+# | `Rescaling(1/255)` | ramène les pixels de [0, 255] à [0, 1] (dans le modèle : l'inférence en production reçoit des images brutes) |
+# | `Conv2D 3×3` ×4 (16→32→64→128 filtres) | détecte des motifs locaux : bords et textures (premiers blocs), formes plus complexes (derniers blocs). Les filtres sont **appris**, comme les filtres de convolution du livrable 2 mais sans les fixer à la main |
+# | `BatchNormalization` | normalise les activations de chaque batch : apprentissage plus rapide et plus stable |
+# | `ReLU` | non-linéarité `max(0, x)` |
+# | `MaxPooling2D 2×2` | divise la résolution par 2 : moins de calculs, tolérance aux petits décalages |
+# | `GlobalAveragePooling2D` | moyenne chaque carte de caractéristiques en un seul nombre : évite une énorme couche dense (donc peu de paramètres, moins de sur-apprentissage) |
+# | `Dense(64, ReLU)` | combine les 128 caractéristiques |
+# | `Dense(1, sigmoïde)` | sortie : probabilité *P(photo)* ∈ [0, 1] |
+#
+# ### 5.2 Paramètres du réseau
+
+# %%
+rows = []
+for layer in baseline.layers:
+    rows.append({
+        "couche": layer.name, "type": type(layer).__name__,
+        "forme de sortie": str(tuple(layer.output.shape)[1:]), "paramètres": layer.count_params(),
+    })
+param_table = pd.DataFrame(rows)
+display(param_table[param_table["paramètres"] > 0])
+trainable = int(sum(np.prod(w.shape) for w in baseline.trainable_weights))
+non_trainable = int(sum(np.prod(w.shape) for w in baseline.non_trainable_weights))
+print(f"Total : {baseline.count_params():,} paramètres — entraînables : {trainable:,} — "
+      f"non entraînables (moyennes/variances de BatchNorm) : {non_trainable:,}")
+
+# %% [markdown]
+# ### 5.3 Fonction de perte
+#
+# Sortie binaire → **entropie croisée binaire** (*binary cross-entropy*). Pour une image de label réel $y \in \{0, 1\}$
+# et une probabilité prédite $\hat{p}$ = P(photo) :
+#
+# $$\mathcal{L}(y, \hat{p}) = -\big[\, y \log \hat{p} + (1 - y)\log(1 - \hat{p}) \,\big]$$
+#
+# La perte est la moyenne sur le batch. Elle est faible quand le réseau est à la fois **juste et confiant**, et très
+# élevée quand il est **confiant et faux** (une peinture annoncée « photo » à 99 %). C'est la fonction naturelle d'une
+# sortie sigmoïde (maximum de vraisemblance d'une loi de Bernoulli) et elle donne de bons gradients, contrairement à
+# l'erreur quadratique.
+#
+# ### 5.4 Algorithme d'optimisation
+#
+# **Adam** (taux d'apprentissage $10^{-3}$, $\beta_1 = 0{,}9$, $\beta_2 = 0{,}999$). Adam est une descente de gradient
+# stochastique par mini-batchs de 64 images, qui adapte le pas de chaque paramètre à partir d'une moyenne mobile du
+# gradient (inertie) et de son carré (échelle). C'est un choix par défaut robuste : il converge vite sans réglage
+# fin du pas. Les métriques suivies sont l'**accuracy** (part d'images bien classées au seuil 0,5) et l'**AUC**
+# (capacité à mieux classer une photo qu'une non-photo, indépendamment du seuil).
+#
+# ### 5.5 Pourquoi ce choix d'architecture ?
+# - **CNN plutôt que réseau dense** : le partage des filtres exploite la structure 2D de l'image avec très peu de
+#   paramètres (≈ 106 k, contre des millions pour un réseau dense sur 128×128×3 pixels).
+# - **Petit réseau** : la tâche est une décision globale simple, et nous calculons sur CPU.
+# - **Justification par les résultats** : sections 7 (le modèle n'est ni trop simple ni trop complexe), 8 et 10
+#   (comparaison avec un réseau pré-entraîné bien plus gros).
+
+# %% [markdown]
+# ## 6. Entraînement et courbes d'apprentissage
+#
+# Entraînement du modèle de référence (*baseline*, sans régularisation) sur le problème **final** (étape 4 : photos
+# contre toutes les autres classes). Les courbes comparent, à chaque epoch, l'**entraînement** et la **validation**
+# (« erreur de test » du sujet) pour la perte et pour l'accuracy.
+
+# %%
+FINAL_SPLIT = get_split(None)
+Xtr, ytr, mtr = FINAL_SPLIT["train"]
+Xva, yva, mva = FINAL_SPLIT["val"]
+Xte, yte, mte = FINAL_SPLIT["test"]
+print(f"train {Xtr.shape[0]} | val {Xva.shape[0]} | test {Xte.shape[0]} | part de photos dans train : {ytr.mean():.1%}")
+
+baseline_model, baseline_hist, baseline_sec = run(FINAL_SPLIT, EPOCHS["main"])
+print(f"Entraînement terminé en {baseline_sec:.0f} s ({baseline_sec / len(baseline_hist):.1f} s/epoch)")
+shown = sorted({i for i in (0, 1, 2, len(baseline_hist) // 2, len(baseline_hist) - 1) if i < len(baseline_hist)})
+display(baseline_hist.round(4).set_index("epoch").iloc[shown])
+
+# %%
+evaluation.plot_history(baseline_hist, "Baseline")
+plt.show()
+
+# %%
+diag = evaluation.diagnose_fit(baseline_hist)
+display(Markdown(
+    f"**Lecture automatique (baseline).** Accuracy finale : entraînement **{diag['train_acc']:.3f}**, "
+    f"validation **{diag['val_acc']:.3f}** (écart {diag['gap_acc']:+.3f}). "
+    f"Perte finale : entraînement {diag['train_loss']:.3f}, validation {diag['val_loss']:.3f}. "
+    f"Meilleure perte de validation à l'epoch **{diag['best_epoch']}** sur {len(baseline_hist)} "
+    f"(remontée depuis ce minimum : {diag['val_loss_drift']:+.3f}). Diagnostic : **{diag['verdict']}**."
+))
+
+# %% [markdown]
+# **Comment lire ces courbes.**
+# - Les premières epochs : la validation peut être instable (voire très mauvaise) car `BatchNormalization` utilise
+#   des statistiques mobiles qui mettent quelques pas à se calibrer. Ce n'est pas un défaut du modèle.
+# - Si la perte d'entraînement continue de baisser alors que celle de validation remonte, le réseau **mémorise**
+#   (sur-apprentissage).
+# - Si les deux courbes stagnent haut, le réseau est **trop simple** ou insuffisamment entraîné (sous-apprentissage).
