@@ -64,7 +64,7 @@ des cellules « Lecture automatique » qui calculent leurs propres chiffres. Les
 
 ---
 
-### Tâche 1 : Environnement, squelette du projet et configuration
+### Task 1 : Environnement, squelette du projet et configuration
 
 **Fichiers :**
 - Créer : `.gitignore`, `pyproject.toml`, `.python-version`, `pytest.ini` (puis `uv.lock`, **généré** par `uv sync`)
@@ -305,7 +305,7 @@ Vérifier avec `git show --stat HEAD` qu'aucun `.zip`, ni `.venv/`, ni `data/` n
 
 ---
 
-### Tâche 2 : Données — inventaire des archives, tirage reproductible, extraction sélective
+### Task 2 : Données — inventaire des archives, tirage reproductible, extraction sélective
 
 **Fichiers :**
 - Créer : `src/tounum_cls/data.py` (début du module)
@@ -526,7 +526,7 @@ git commit -m "feat(data): zip inventory, reproducible disjoint sampling, select
 
 ---
 
-### Tâche 3 : Données — chargement des images, découpage, sélection, poids de classe, `tf.data`
+### Task 3 : Données — chargement des images, découpage, sélection, poids de classe, `tf.data`
 
 **Fichiers :**
 - Modifier : `src/tounum_cls/data.py` (ajout en fin de fichier)
@@ -744,7 +744,7 @@ git commit -m "feat(data): image loading, stratified split, class weights and tf
 
 ---
 
-### Tâche 4 : Données — orchestration `prepare_dataset` + validation sur les vraies archives
+### Task 4 : Données — orchestration `prepare_dataset` + validation sur les vraies archives
 
 **Fichiers :**
 - Modifier : `src/tounum_cls/data.py` (ajout en fin de fichier)
@@ -870,7 +870,7 @@ git commit -m "feat(data): prepare_dataset orchestration with relative-path cach
 
 ---
 
-### Tâche 5 : Modèles — CNN maison, MobileNetV2 gelé, entraînement
+### Task 5 : Modèles — CNN maison, MobileNetV2 gelé, entraînement
 
 **Fichiers :**
 - Créer : `src/tounum_cls/modeling.py`
@@ -1102,7 +1102,7 @@ git commit -m "feat(modeling): custom CNN, frozen MobileNetV2 baseline and train
 
 ---
 
-### Tâche 6 : Évaluation — métriques et diagnostic biais/variance
+### Task 6 : Évaluation — métriques et diagnostic biais/variance
 
 **Fichiers :**
 - Créer : `src/tounum_cls/evaluation.py` (début du module)
@@ -1270,7 +1270,7 @@ git commit -m "feat(evaluation): binary metrics, per-source accuracy and bias/va
 
 ---
 
-### Tâche 7 : Évaluation — graphiques (courbes, confusion, précision/rappel, erreurs) et schéma d'architecture
+### Task 7 : Évaluation — graphiques (courbes, confusion, précision/rappel, erreurs) et schéma d'architecture
 
 **Fichiers :**
 - Modifier : `src/tounum_cls/evaluation.py` (ajout en fin de fichier)
@@ -1445,7 +1445,7 @@ git commit -m "feat(evaluation): training curves, confusion matrix, PR curve, er
 
 ---
 
-### Tâche 8 : Notebook, partie A — contexte métier, environnement, données, découpage
+### Task 8 : Notebook, partie A — contexte métier, environnement, données, découpage
 
 **Fichiers :**
 - Créer : `scripts/run_notebook.sh`
@@ -1830,7 +1830,7 @@ git commit -m "docs(notebook): business context, environment, data exploration a
 
 ---
 
-### Tâche 9 : Notebook, partie B — progression par difficulté (section 4)
+### Task 9 : Notebook, partie B — progression par difficulté (section 4)
 
 **Fichiers :**
 - Modifier : `notebooks/livrable1_classification_binaire.py` (ajout en fin de fichier)
@@ -1929,7 +1929,7 @@ git commit -m "docs(notebook): progression by difficulty across four stages (par
 
 ---
 
-### Tâche 10 : Notebook, partie C — architecture (section 5) et entraînement (section 6)
+### Task 10 : Notebook, partie C — architecture (section 5) et entraînement (section 6)
 
 **Fichiers :**
 - Modifier : `notebooks/livrable1_classification_binaire.py` (ajout en fin de fichier)
@@ -2088,7 +2088,7 @@ git commit -m "docs(notebook): architecture, loss, optimizer and baseline traini
 
 ---
 
-### Tâche 11 : Notebook, partie D — analyse biais/variance (section 7) et améliorations (section 8)
+### Task 11 : Notebook, partie D — analyse biais/variance (section 7) et améliorations (section 8)
 
 **Fichiers :**
 - Modifier : `notebooks/livrable1_classification_binaire.py` (ajout en fin de fichier)
@@ -2320,7 +2320,7 @@ git commit -m "docs(notebook): bias/variance analysis and regularization experim
 
 ---
 
-### Tâche 12 : Notebook, partie E — évaluation finale (9), comparaison MobileNetV2 (10), conclusion (11)
+### Task 12 : Notebook, partie E — évaluation finale (9), comparaison MobileNetV2 (10), conclusion (11)
 
 **Fichiers :**
 - Modifier : `notebooks/livrable1_classification_binaire.py` (ajout en fin de fichier)
@@ -2574,7 +2574,7 @@ git commit -m "docs(notebook): final evaluation, MobileNetV2 comparison, conclus
 
 ---
 
-### Tâche 13 : Exécution complète, contrôle d'acceptation, README et livraison
+### Task 13 : Exécution complète, contrôle d'acceptation, README et livraison
 
 **Fichiers :**
 - Créer : `README.md`
