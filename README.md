@@ -48,7 +48,7 @@ uv run pytest -q
 #    (ignoré par git) et ne touche ni au livrable ni au modèle sauvegardé
 bash scripts/run_notebook.sh quick
 
-# 3. exécution complète = livrable (36 minutes sur un CPU 16 cœurs, mesuré)
+# 3. exécution complète = livrable (35 minutes sur un CPU 16 cœurs, mesuré)
 bash scripts/run_notebook.sh full
 
 # 4. contrôle de complétude du notebook exécuté

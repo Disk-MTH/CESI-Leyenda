@@ -573,7 +573,7 @@ display(Markdown(
 # | **Transfert d'apprentissage** | partir d'un réseau pré-entraîné (ImageNet) | ↓ biais et variance avec peu de données | section 10 |
 #
 # ### 8.2 Expériences
-# Même problème (étape 4), même graine. On compare chaque technique **seule**, puis **combinées avec early stopping**.
+# Même problème (étape 4), même graine. On compare chaque technique **seule**, puis **toutes combinées** (avec early stopping).
 # L'early stopping est évalué avec un budget d'epochs plus large (il choisira lui-même quand s'arrêter).
 
 # %%
@@ -781,8 +781,8 @@ display(out)
 # %% [markdown]
 # ## 10. Comparaison avec un réseau pré-entraîné (MobileNetV2)
 #
-# Pour **justifier le choix d'architecture par les résultats**, on le compare à **MobileNetV2** pré-entraîné sur ImageNet
-# (1,4 million d'images), utilisé comme extracteur de caractéristiques **gelé** : seule la tête (`Dense` sigmoïde) est
+# Pour **situer le choix d'architecture par rapport à une alternative**, on le compare à **MobileNetV2** pré-entraîné sur
+# ImageNet (plus d'un million d'images), utilisé comme extracteur de caractéristiques **gelé** : seule la tête (`Dense` sigmoïde) est
 # entraînée. C'est le *transfert d'apprentissage*. Les poids sont téléchargés depuis Internet à la première utilisation.
 
 # %%
@@ -869,7 +869,7 @@ display(Markdown(
 #    indique quel modèle retenir en production).
 # 3. Une **analyse biais/variance** chiffrée (sections 6 à 8) et une comparaison de techniques de régularisation.
 # 4. Une **évaluation honnête** sur un jeu de test jamais utilisé pour entraîner ni pour choisir un modèle, équilibré et réaliste (section 9), avec analyse des
-#    erreurs et choix du seuil.
+#    erreurs et discussion du seuil.
 # 5. Un **modèle sauvegardé** (`models/cnn_photo_final.keras`) et une fonction d'inférence (`predict_photo`).
 #
 # ### Limites et esprit critique
