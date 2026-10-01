@@ -200,3 +200,30 @@ def make_dataset(X, y, batch_size=config.BATCH_SIZE, shuffle=False, seed=config.
     if shuffle:
         ds = ds.shuffle(len(X), seed=seed, reshuffle_each_iteration=True)
     return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+
+# --------------------------------------------------------------------------- orchestration
+def prepare_dataset(force: bool = False) -> tuple[np.ndarray, pd.DataFrame]:
+    """Pipeline complet : inventaire -> tirage -> extraction -> chargement -> split -> cache.
+
+    Au 2e appel, relit simplement data/cache/X.npy et data/cache/meta.csv.
+    Renvoie (X, meta) ; meta a les colonnes member, source, label, subset, path, split.
+    `path` est stocké relatif à la racine du projet dans meta.csv (le projet reste déplaçable)
+    et renvoyé en absolu.
+    """
+    x_path, m_path = config.CACHE_DIR / "X.npy", config.CACHE_DIR / "meta.csv"
+    if x_path.exists() and m_path.exists() and not force:
+        meta = pd.read_csv(m_path)
+        meta["path"] = meta["path"].map(lambda p: str(config.PROJECT_ROOT / p))
+        return np.load(x_path), meta
+    inventory = build_inventory(config.ZIP_DIR)
+    sample = sample_dataset(inventory, config.POOL_COUNTS, config.EXT_COUNTS)
+    sample = extract_files(sample, config.ZIP_DIR, config.RAW_DIR)
+    X, meta = load_images(sample)
+    meta = add_split(meta)
+    config.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    np.save(x_path, X)
+    to_save = meta.copy()
+    to_save["path"] = to_save["path"].map(lambda p: os.path.relpath(p, config.PROJECT_ROOT))
+    to_save.to_csv(m_path, index=False)
+    return X, meta

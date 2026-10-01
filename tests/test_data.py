@@ -129,3 +129,22 @@ def test_make_dataset_batches():
     ds = data.make_dataset(X, y, batch_size=4, shuffle=True)
     bx, by = next(iter(ds))
     assert tuple(bx.shape) == (4, 8, 8, 3) and by.dtype.name == "float32"
+
+
+def test_prepare_dataset_end_to_end_and_cache(make_zip, tmp_path, monkeypatch):
+    for c in config.CLASSES:
+        make_zip(c, 30, extra_png_gray=2 if c == "Sketch" else 0)
+    monkeypatch.setattr(config, "ZIP_DIR", tmp_path)
+    monkeypatch.setattr(config, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(config, "RAW_DIR", tmp_path / "data" / "raw")
+    monkeypatch.setattr(config, "CACHE_DIR", tmp_path / "data" / "cache")
+    monkeypatch.setattr(config, "POOL_COUNTS", {c: 20 for c in config.CLASSES})
+    monkeypatch.setattr(config, "EXT_COUNTS", {**{c: 3 for c in config.CLASSES}, "Sketch": None})
+    X, meta = data.prepare_dataset()
+    assert X.shape[0] == len(meta) == 5 * 20 + 4 * 3 + (32 - 20) and X.dtype == np.uint8
+    assert X.shape[1:] == (128, 128, 3)
+    assert set(meta["split"]) == {"train", "val", "test", "ext"}
+    # 2e appel : lecture du cache, chemins ré-absolutisés, mêmes données
+    X2, meta2 = data.prepare_dataset()
+    assert (X2 == X).all() and meta2["path"].map(lambda p: os.path.exists(p)).all()
+    assert not (tmp_path / "data" / "cache" / "meta.csv").read_text().count(str(tmp_path))
