@@ -1,0 +1,13 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "files.watcherExclude": {
+    "**/data/**": true,
+    "**/.venv/**": true
+  },
+  "search.exclude": {
+    "**/data/**": true,
+    "**/*.quick.ipynb": true
+  }
+}

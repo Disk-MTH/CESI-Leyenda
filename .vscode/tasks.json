@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Tests (pytest, ~5 s)",
+      "type": "shell",
+      "command": "uv run pytest -q",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check notebook livrable (mode complet)",
+      "type": "shell",
+      "command": "uv run python scripts/check_notebook.py notebooks/livrable1_classification_binaire.ipynb",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check notebook quick (--partial)",
+      "type": "shell",
+      "command": "uv run python scripts/check_notebook.py notebooks/livrable1_classification_binaire.quick.ipynb --partial",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Notebook : quick (~6 min, n'écrit que *.quick.ipynb ignoré par git)",
+      "type": "shell",
+      "command": "bash scripts/run_notebook.sh quick",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Notebook : full (~35 min, régénère le livrable ipynb + modèle)",
+      "type": "shell",
+      "command": "bash scripts/run_notebook.sh full",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
