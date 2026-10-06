@@ -7,7 +7,8 @@ three modules, one per deliverable:
 1. **Filtering** (deliverable 1): a classifier keeps the photos and sets aside paintings, diagrams, sketches and
    scanned text.
 2. **Pre-processing** (deliverable 2): a convolutional autoencoder (U-Net with a residual output), trained on
-   synthetic colour noise and fine-tuned on real noisy / clean pairs, removes the noise from the photos that need it.
+   synthetic colour noise, then fine-tuned on real noisy / clean pairs mixed with clean photos and synthetic noise,
+   removes the noise from the photos that need it.
 3. **Captioning** (deliverable 3): a CNN pre-trained on ImageNet (InceptionV3) encodes the photo and a recurrent
    network (GRU) writes the caption word by word. Versions with and without attention are compared and the one
    with the better validation score is kept. Trained on 80,000 MS COCO 2017 images.
