@@ -359,10 +359,11 @@ plt.show()
 # aside** until the final measurement (section 9). From the fine-tuning and validation images we cut aligned 96×96
 # crops of the noisy image and of its original.
 #
-# In production the denoiser will also receive clean photos. So the fine-tuning set gets as many crops of clean
-# photos (from the training split of deliverable 1), whose target is the input itself: the model has to learn to
-# remove the TouNum noise *and* to leave clean photos alone. The validation set mixes real and clean crops the same
-# way.
+# In production the denoiser will also receive clean photos, and possibly photos noisier than these 148. So the
+# fine-tuning set gets two more parts of the same size: crops of clean photos (from the training split of
+# deliverable 1) whose target is the input itself, and patches with the synthetic noise of section 4.1. The model
+# has to learn to remove the TouNum noise, to leave clean photos alone, and to keep what it learned on stronger
+# noise. The validation set mixes the three kinds of crops the same way.
 
 # %%
 real_split = data.split_real_pairs(noisy_info["file"].tolist())
@@ -375,13 +376,19 @@ rv_noisy, rv_clean = data.pair_crops([noisy_images[i] for i in real_idx["val"]],
 n_clean_ft = 50 if QUICK else config.CLEAN_FT_PHOTOS
 clean_ft = data.build_patches(photo_paths["train"][:n_clean_ft], crops_per_image=10)
 clean_v = data.build_patches(photo_paths["val"][:n_clean_ft // 10], crops_per_image=6, seed=config.SEED + 2)
-mix_noisy, mix_clean = np.concatenate([ft_noisy, clean_ft]), np.concatenate([ft_clean, clean_ft])
-mix_val = (data.to_float(np.concatenate([rv_noisy, clean_v])), data.to_float(np.concatenate([rv_clean, clean_v])))
-display(pd.DataFrame({"images": [len(real_split["finetune"]), n_clean_ft, len(real_split["val"]), n_clean_ft // 10,
-                                 len(real_split["test"])],
-                      "96x96 crops": [len(ft_noisy), len(clean_ft), len(rv_noisy), len(clean_v), 0]},
-                     index=["fine-tuning, TouNum pairs", "fine-tuning, clean photos", "validation, TouNum pairs",
-                            "validation, clean photos", "test, TouNum pairs"]))
+syn_clean = train_patches[:len(ft_noisy)]                                   # noise drawn once, seeded
+syn_noisy = data.to_uint8(data.fixed_noisy_set(syn_clean, seed=config.SEED + 3)[0])
+n_sv = min(len(rv_noisy), len(val_patches))
+mix_noisy = np.concatenate([ft_noisy, clean_ft, syn_noisy])
+mix_clean = np.concatenate([ft_clean, clean_ft, syn_clean])
+mix_val = (np.concatenate([data.to_float(rv_noisy), data.to_float(clean_v), val_noisy[:n_sv]]),
+           np.concatenate([data.to_float(rv_clean), data.to_float(clean_v), val_clean[:n_sv]]))
+display(pd.DataFrame({"images": [len(real_split["finetune"]), n_clean_ft, "", len(real_split["val"]), n_clean_ft // 10,
+                                 "", len(real_split["test"])],
+                      "96x96 crops": [len(ft_noisy), len(clean_ft), len(syn_noisy), len(rv_noisy), len(clean_v), n_sv, 0]},
+                     index=["fine-tuning, TouNum pairs", "fine-tuning, clean photos", "fine-tuning, synthetic noise",
+                            "validation, TouNum pairs", "validation, clean photos", "validation, synthetic noise",
+                            "test, TouNum pairs"]))
 
 # %% [markdown]
 # ## 5. Baseline: classical convolution filters
@@ -654,14 +661,14 @@ display(Markdown(
 #
 # ### 9.2 Fine-tuning on real pairs
 # Each model trained on synthetic noise is trained again on the fine-tuning set of section 4.2 (crops of the 78
-# TouNum images and as many crops of clean photos), starting from its current weights, with a learning rate ten
+# TouNum images, clean photos and synthetic noise), starting from its current weights, with a learning rate ten
 # times lower so that it adapts without forgetting what it learned. Early stopping watches the validation crops.
-# The 50 test images are still unseen. To show what the clean photos bring, the residual model is also fine-tuned
-# on the TouNum pairs alone.
+# The 50 test images are still unseen. To show what the two extra parts bring, the residual model is also
+# fine-tuned on the TouNum pairs alone.
 #
 # Besides the PSNR on the 50 noisy test images, the table measures how much each model changes **clean** photos
-# (50 photos of the deliverable 1 test split): the PSNR of the output against the input, where higher means the
-# photo is left closer to how it was.
+# (50 photos of the deliverable 1 test split: the PSNR of the output against the input, higher means the photo is
+# left closer to how it was), and its gain on the validation patches with synthetic noise of sigma 10.
 
 # %%
 def fine_tuned(model, noisy_crops, clean_crops, val):
@@ -697,15 +704,25 @@ def clean_psnr(model):
     return 10 * np.log10(255**2 / mse)
 
 
-clean_cols = {name: clean_psnr(model) for name, model in models_.items()}
-for name, model in ft_models.items():
-    case_rows[f"{name}, fine-tuned"] = real_scores([modeling.denoise(model, img) for img in test_noisy])
-    clean_cols[f"{name}, fine-tuned"] = clean_psnr(model)
-case_rows[f"{residual_name}, fine-tuned on TouNum pairs only"] = real_scores([modeling.denoise(real_only, img) for img in test_noisy])
-clean_cols[f"{residual_name}, fine-tuned on TouNum pairs only"] = clean_psnr(real_only)
+syn10 = data.to_float(np.stack([data.add_noise(p, 10, np.random.default_rng(config.SEED + 10)) for p in val_patches]))
+
+
+def synthetic_gain(model):
+    """PSNR gain on the validation patches with synthetic noise of sigma 10."""
+    return evaluation.dataset_psnr(val_clean, modeling.predict(model, syn10)) - evaluation.dataset_psnr(val_clean, syn10)
+
+
+all_models = {**models_, **{f"{n}, fine-tuned": m for n, m in ft_models.items()},
+              f"{residual_name}, fine-tuned on TouNum pairs only": real_only}
+clean_cols, syn_cols = {}, {}
+for name, model in all_models.items():
+    if name not in case_rows:
+        case_rows[name] = real_scores([modeling.denoise(model, img) for img in test_noisy])
+    clean_cols[name], syn_cols[name] = clean_psnr(model), synthetic_gain(model)
 case = pd.DataFrame({name: {"PSNR": p.mean(), "SSIM": s.mean(), "images improved": (p > case_rows["noisy (no filter)"][0]).mean()}
                      for name, (p, s) in case_rows.items()}).T
 case["PSNR on clean photos (output vs input)"] = pd.Series(clean_cols)
+case["gain on synthetic noise, sigma 10 (dB)"] = pd.Series(syn_cols)
 display(case)
 final_psnr = case_rows[f"{final_name}, fine-tuned"][0]
 final_gain = final_psnr - case_rows["noisy (no filter)"][0]
@@ -745,10 +762,13 @@ display(Markdown(
     f"and improves **{(final_gain > 0).mean():.0%}** of the images, against {synth_table.loc[best_synth, 'PSNR']:.2f} dB "
     f"for the best model trained on synthetic noise only. Fine-tuned versions of the other variants: "
     + ", ".join(f"{n} {case.loc[f'{n}, fine-tuned', 'PSNR']:.2f} dB" for n in ft_models if n != final_name) + ". "
-    f"On clean photos the selected model gives {final_row['PSNR on clean photos (output vs input)']:.1f} dB. "
-    f"Fine-tuned on the TouNum pairs alone, the residual model reaches {ablation['PSNR']:.2f} dB on the noisy test "
-    f"images but only {ablation['PSNR on clean photos (output vs input)']:.1f} dB on clean photos: without clean "
-    "photos in the fine-tuning set, it also changes images that had no noise."
+    f"On clean photos the selected model gives {final_row['PSNR on clean photos (output vs input)']:.1f} dB, and on "
+    f"synthetic noise of sigma 10 it keeps a gain of {final_row['gain on synthetic noise, sigma 10 (dB)']:+.1f} dB "
+    f"({case.loc[final_name, 'gain on synthetic noise, sigma 10 (dB)']:+.1f} dB before fine-tuning). Fine-tuned on "
+    f"the TouNum pairs alone, the residual model reaches {ablation['PSNR']:.2f} dB on the noisy test images, but "
+    f"{ablation['PSNR on clean photos (output vs input)']:.1f} dB on clean photos and "
+    f"{ablation['gain on synthetic noise, sigma 10 (dB)']:+.1f} dB on synthetic noise: without the two extra parts, "
+    "fine-tuning narrows the model down to the TouNum noise."
 ))
 
 # %% [markdown]
@@ -869,7 +889,7 @@ display(Markdown(
 SAVE_DIR = Path(tempfile.gettempdir()) / "tounum_quick" if QUICK else config.MODELS_DIR
 SAVE_DIR.mkdir(parents=True, exist_ok=True)
 denoiser.save(SAVE_DIR / "denoiser.keras")
-settings = {"model": f"{final_name}, fine-tuned on real pairs", "noise_threshold": NOISE_THRESHOLD,
+settings = {"model": f"{final_name}, fine-tuned", "noise_threshold": NOISE_THRESHOLD,
             "pad_multiple": modeling.PAD_MULTIPLE, "test_files": real_split["test"]}
 (SAVE_DIR / "denoiser.json").write_text(json.dumps(settings, indent=2))
 reloaded = keras.models.load_model(SAVE_DIR / "denoiser.keras")
@@ -895,7 +915,7 @@ print(f"Saved {shown}/denoiser.keras ({(SAVE_DIR / 'denoiser.keras').stat().st_s
 # %%
 display(Markdown(
     f"**Summary.** Retained model: **{final_name}**, trained on synthetic colour noise then fine-tuned on 78 real "
-    f"pairs and clean photos ({denoiser.count_params():,} parameters). On the 50 TouNum test images: {case_rows['noisy (no filter)'][0].mean():.2f} dB "
+    f"pairs, clean photos and synthetic noise ({denoiser.count_params():,} parameters). On the 50 TouNum test images: {case_rows['noisy (no filter)'][0].mean():.2f} dB "
     f"before, {final_psnr.mean():.2f} dB after ({(final_gain > 0).mean():.0%} of images improved), against "
     f"{synth_table.loc[best_synth, 'PSNR']:.2f} dB with synthetic training only and "
     f"{synth_table.loc[best_filter, 'PSNR']:.2f} dB for the best classical filter. Pipeline rule: {rule_name}."
@@ -909,8 +929,9 @@ display(Markdown(
 #    little and is stronger on saturated colours; a synthetic colour noise was built to approach it.
 # 3. A **comparison** between classical convolution filters and three convolutional autoencoders (plain, with skip
 #    connections, with a residual output), by noise level and on the real images.
-# 4. A **fine-tuning step on real pairs and clean photos**, measured on 50 real images kept aside, which is what
-#    makes the autoencoder useful on TouNum's noise while leaving clean photos almost unchanged.
+# 4. A **fine-tuning step on real pairs, clean photos and synthetic noise**, measured on 50 real images kept aside,
+#    which makes the autoencoder useful on TouNum's noise while leaving clean photos almost unchanged and keeping
+#    its gain on stronger noise.
 # 5. A **decision rule** for the pipeline, chosen on validation data and checked on test images, and a check that
 #    the **photo filter of deliverable 1** still works on noisy images.
 # 6. A **saved model** (`models/denoiser.keras`) and its settings (`models/denoiser.json`).

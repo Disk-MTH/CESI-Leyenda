@@ -1,6 +1,6 @@
 {
-  "model": "skip connections + residual output, fine-tuned on real pairs",
-  "noise_threshold": 2.254744833220949,
+  "model": "skip connections + residual output, fine-tuned",
+  "noise_threshold": 3.4879752727887166,
   "pad_multiple": 8,
   "test_files": [
     "noisy_001.jpg",

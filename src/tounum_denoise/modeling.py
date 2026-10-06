@@ -14,8 +14,11 @@ PAD_MULTIPLE = 8   # inputs are padded to a multiple of this so the pooling / up
 
 @keras.saving.register_keras_serializable(package="tounum")
 def psnr(y_true, y_pred):
-    """Peak signal-to-noise ratio in dB for images in [0, 1] (higher is better)."""
-    return tf.image.psnr(y_true, y_pred, max_val=1.0)
+    """Peak signal-to-noise ratio in dB for images in [0, 1] (higher is better), from the mean squared error of the
+    whole batch. A per-image PSNR would be infinite for a patch left exactly unchanged (a flat white area, which a
+    residual model can return as is) and would make the epoch average infinite too."""
+    mse = tf.reduce_mean(tf.square(tf.cast(y_true, tf.float32) - tf.cast(y_pred, tf.float32)))
+    return 10.0 * tf.math.log(1.0 / tf.maximum(mse, 1e-10)) / tf.math.log(10.0)
 
 
 @keras.saving.register_keras_serializable(package="tounum")
