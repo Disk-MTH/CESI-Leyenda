@@ -85,6 +85,31 @@ def sample_images(
     return out
 
 
+def exclude_images(images: pd.DataFrame, image_ids) -> pd.DataFrame:
+    """Drop some images from a sample without drawing it again (the other images keep their split)."""
+    return images[~images["image_id"].isin(set(image_ids))].reset_index(drop=True)
+
+
+def captions_for(images: pd.DataFrame, coco_dir: Path = config.COCO_DIR) -> pd.DataFrame:
+    """Captions of the sampled images, one row per caption.
+
+    Columns: image_id, caption (raw), split, image_index (row of the image within its split, which is also its
+    row in the feature array of that split) and clean (cleaned caption with the start and end markers).
+    """
+    caps = pd.concat([load_captions(s, coco_dir) for s in sorted(images["coco_split"].unique())])
+    index = images[["image_id", "split"]].copy()
+    index["image_index"] = index.groupby("split").cumcount()
+    out = caps[["image_id", "caption"]].merge(index, on="image_id")
+    out["clean"] = out["caption"].map(clean_caption)
+    return out.sort_values(["split", "image_index", "caption"]).reset_index(drop=True)
+
+
+def references(captions: pd.DataFrame, split: str) -> list[list[str]]:
+    """Reference captions of every image of a split (cleaned, without the markers), in feature order."""
+    sub = captions[captions["split"] == split]
+    return [[" ".join(c.split()[1:-1]) for c in grp] for _, grp in sub.groupby("image_index")["clean"]]
+
+
 def download_images(images: pd.DataFrame, workers: int = 16) -> list[str]:
     """Download the sampled images one by one (parallel, skips files already on disk).
 

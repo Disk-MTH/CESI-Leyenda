@@ -14,7 +14,7 @@ ANNOTATIONS_ZIP = "annotations/annotations_trainval2017.zip"
 
 # Images sampled from COCO 2017. Train and validation come from train2017, the test set from val2017,
 # so test images are never seen during training or model selection.
-N_TRAIN_IMAGES = 28_000
+N_TRAIN_IMAGES = 80_000                         # 28,000 in a first CPU-sized version (see notebook, section 6)
 N_VAL_IMAGES = 2_000
 N_TEST_IMAGES = 2_000
 
