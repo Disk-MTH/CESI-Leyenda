@@ -18,8 +18,8 @@ CLASSES = ["Photo", "Painting", "Schematics", "Text", "Sketch"]
 ZIP_FILES = {c: f"Dataset Livrable 1 - {c}.zip" for c in CLASSES}
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 
-# Modelling pool (balanced: 3000 photos / 3000 non-photos)
-POOL_COUNTS = {"Photo": 3000, "Painting": 1200, "Schematics": 600, "Text": 600, "Sketch": 600}
+# Modelling pool (balanced: 6000 photos / 6000 non-photos). Paintings, the hardest class, get the largest share.
+POOL_COUNTS = {"Photo": 6000, "Painting": 2800, "Schematics": 1200, "Text": 1200, "Sketch": 800}
 # Extended test set, closer to a real archive (imbalanced). None = everything left after the pool.
 EXT_COUNTS = {"Photo": 1000, "Painting": 1000, "Schematics": 1000, "Text": 1000, "Sketch": None}
 

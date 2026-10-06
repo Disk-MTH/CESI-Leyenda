@@ -62,7 +62,7 @@ import inspect
 import tempfile
 from pathlib import Path
 
-os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")      # quieter TensorFlow logs
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")      # hide TensorFlow C++ logs (GPU autotuning notices)
 ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 sys.path.insert(0, str(ROOT / "src"))                   # reusable code lives in src/tounum_cls
 import tounum_gpu
@@ -82,7 +82,7 @@ from tounum_cls import config, data, modeling, evaluation
 
 QUICK = os.environ.get("TOUNUM_QUICK") == "1"
 # Number of epochs for each experiment (reduced in QUICK mode)
-EPOCHS = {"stage": 8, "main": 20, "curve": 12, "improve": 25, "mobilenet": 8}
+EPOCHS = {"stage": 8, "main": 20, "curve": 20, "improve": 25, "mobilenet": 8}
 if QUICK:
     EPOCHS = {k: 2 for k in EPOCHS}
 
@@ -99,9 +99,9 @@ print(f"Seed: {config.SEED} | QUICK mode: {QUICK} | epochs: {EPOCHS}")
 
 # %% [markdown]
 # Every source of randomness (image sampling, split, weight initialisation, batch shuffling) depends on the seed
-# `SEED = 42`. On CPU, TensorFlow can still produce tiny differences between runs because parallel operations are
-# not always summed in the same order. The last decimals may move, and a diagnosis that sits right on a threshold
-# can flip.
+# `SEED = 42`. TensorFlow can still produce tiny differences between runs, on CPU and even more on a GPU, because
+# parallel operations are not always summed in the same order. The last decimals may move, and a diagnosis that sits
+# right on a threshold can flip.
 
 # %% [markdown]
 # ## 2. The data
@@ -126,15 +126,17 @@ summary["total sampled"] = summary.sum(axis=1)
 display(summary.loc[config.CLASSES])
 
 # %% [markdown]
-# **Why a sample rather than all 41,400 images?** Everything runs on a CPU. A balanced sample of 6,000 images
-# (3,000 photos and 3,000 non-photos) is plenty for this kind of task and lets us run many experiments
-# (comparisons, regularisation) in reasonable time. The counts can be changed in `src/tounum_cls/config.py`
-# (`POOL_COUNTS`, `EXT_COUNTS`).
+# **Why a sample rather than all 41,400 images?** The notebook trains about fifteen networks (stages, capacities,
+# learning curve, regularisation), so the modelling pool has to stay small enough to make that quick. A first
+# version, trained on a CPU, used 6,000 images, and its learning curve (section 7.2) was still rising at full size:
+# more images still helped. Training now runs on a GPU, so the pool was doubled to 12,000 images (6,000 photos and
+# 6,000 non-photos). Going further would mostly cost extraction and loading time (some paintings are larger than
+# 60 megapixels). The counts can be changed in `src/tounum_cls/config.py` (`POOL_COUNTS`, `EXT_COUNTS`).
 #
 # - The **pool** is split 50/50 between photos and non-photos. Paintings get the largest share of the negatives
-#   (1,200) because they are the hardest class.
+#   (2,800 out of 6,000) because they are the hardest class.
 # - The **extended test set** (`ext`) is never used to train, to pick a model or to set a threshold. It is
-#   imbalanced on purpose (about 21% photos) to estimate performance on an archive that looks like real client data.
+#   imbalanced on purpose (about 22% photos) to estimate performance on an archive that looks like real client data.
 
 # %% [markdown]
 # ### 2.1 Original image sizes
@@ -190,13 +192,22 @@ for ax in axes:
 plt.tight_layout()
 plt.show()
 
+# %%
+medians = meta.groupby("source")[["brightness", "colourfulness"]].median().loc[config.CLASSES]
+display(Markdown(
+    "**Results.** Median brightness: "
+    + ", ".join(f"{s} {medians.loc[s, 'brightness']:.0f}" for s in config.CLASSES)
+    + ". Median colourfulness: "
+    + ", ".join(f"{s} {medians.loc[s, 'colourfulness']:.1f}" for s in config.CLASSES) + "."
+))
+
 # %% [markdown]
-# Scanned text is very bright (about 244) with no colour at all, sketches are bright (about 234) and grayscale, and
-# diagrams are usually bright but vary a lot (some are dark or colourful). A very simple classifier using thresholds
-# on these two numbers would already separate a good share of them.
-# Paintings are another story: their brightness (about 118 against 112 for photos) and colour ranges overlap with
-# photos. They can only be told apart by texture and structure, which is exactly what a convolutional network can
-# pick up. This is why section 4 moves from the easiest classes to the hardest.
+# Scanned text and sketches are very bright and nearly colourless, and diagrams are usually bright but vary a lot
+# (some are dark or colourful). A very simple classifier using thresholds on these two numbers would already
+# separate a good share of them.
+# Paintings are another story: their brightness and colour ranges overlap with those of photos. They can only be
+# told apart by texture and structure, which is exactly what a convolutional network can pick up. This is why
+# section 4 moves from the easiest classes to the hardest.
 
 # %% [markdown]
 # ## 3. Train / validation / test split
@@ -391,7 +402,8 @@ print(f"Total: {baseline.count_params():,} parameters, of which {trainable:,} tr
 # ### 5.5 Why this architecture?
 # - **A CNN rather than a dense network**: sharing filters across the image uses its 2D structure with very few
 #   parameters (about 106k, against millions for a dense network on 128×128×3 pixels).
-# - **A small network**: the task is a single global decision and we train on CPU.
+# - **A small network**: the task is a single global decision, and a small network trains fast enough to be
+#   retrained many times for the comparisons of sections 4, 7 and 8.
 # - **Backed by results**: section 7 compares this network with a much smaller and a larger version, and section 10
 #   with a pre-trained network of several million parameters.
 
@@ -492,9 +504,11 @@ plt.show()
 
 # %% [markdown]
 # ### 7.2 Learning curve: what happens with more data?
-# We train the baseline on a growing share of the training set (stratified by class) and compare the final training
-# and validation accuracy. A **large gap that closes as data grows** points to variance, which more images would
-# reduce. Two curves that are **close but low** point to bias, which more data will not fix.
+# We train the baseline on a growing share of the training set (stratified by class) and compare the training and
+# validation accuracy at the end of training. The validation accuracy of a single epoch can move by several points
+# from one epoch to the next (section 6), so each point is the mean of the last three epochs. A **large gap that
+# closes as data grows** points to variance, which more images would reduce. Two curves that are **close but low**
+# point to bias, which more data will not fix.
 
 # %%
 from sklearn.model_selection import train_test_split
@@ -507,8 +521,9 @@ for frac in (0.1, 0.25, 0.5, 1.0):
         keep = np.arange(len(ytr))
     sub = {"train": (Xtr[keep], ytr[keep], mtr.iloc[keep]), "val": FINAL_SPLIT["val"], "test": FINAL_SPLIT["test"]}
     _, hist, _ = run(sub, EPOCHS["curve"])
-    d = evaluation.diagnose_fit(hist)
-    curve_rows.append({"fraction": frac, "n_train": len(keep), "train acc": d["train_acc"], "val acc": d["val_acc"]})
+    end = hist.tail(3)                                   # mean of the last three epochs
+    curve_rows.append({"fraction": frac, "n_train": len(keep), "train acc": end["accuracy"].mean(),
+                       "val acc": end["val_accuracy"].mean()})
 curve_df = pd.DataFrame(curve_rows).set_index("fraction")
 display(curve_df)
 
@@ -516,7 +531,7 @@ fig, ax = plt.subplots(figsize=(6, 3.8))
 ax.plot(curve_df["n_train"], curve_df["train acc"], marker="o", label="training")
 ax.plot(curve_df["n_train"], curve_df["val acc"], marker="o", label="validation")
 ax.set_xlabel("number of training images")
-ax.set_ylabel("accuracy (last epoch)")
+ax.set_ylabel("accuracy (mean of the last 3 epochs)")
 ax.set_title("Learning curve (baseline)")
 ax.legend()
 plt.tight_layout()
@@ -631,9 +646,14 @@ best_name = imp_df["val loss (final model)"].idxmin()
 display(Markdown(
     f"**Model selection (validation set only).** The configuration with the lowest validation loss is "
     f"**{best_name}** (loss {imp_df.loc[best_name, 'val loss (final model)']:.4f}, "
-    f"accuracy {imp_df.loc[best_name, 'val acc (final model)']:.3f}); the baseline gets "
-    f"{imp_df.loc['baseline', 'val loss (final model)']:.4f} / {imp_df.loc['baseline', 'val acc (final model)']:.3f}. "
-    "This is the custom CNN evaluated on the test sets in the next section."
+    f"accuracy {imp_df.loc[best_name, 'val acc (final model)']:.3f})"
+    + ("; none of the techniques lowered the validation loss in this run"
+       + (", which is consistent with a baseline that shows no clear variance problem"
+          if imp_df.loc["baseline", "diagnosis"].startswith("balanced") else "") + ". "
+       if best_name == "baseline" else
+       f"; the baseline gets {imp_df.loc['baseline', 'val loss (final model)']:.4f} / "
+       f"{imp_df.loc['baseline', 'val acc (final model)']:.3f}. ")
+    + "This is the custom CNN evaluated on the test sets in the next section."
 ))
 final_model = imp_models[best_name]
 final_hist = imp_hist[best_name]
@@ -890,7 +910,7 @@ display(Markdown(
 #    used by the pipeline of deliverable 3), plus an inference function (`predict_photo`).
 #
 # ### Limits
-# - **Sample size**: 6,000 modelling images out of about 41,400. Training on everything could do slightly better.
+# - **Sample size**: 12,000 modelling images out of about 41,400. Training on everything could do slightly better.
 #   The counts are set in `config.py`.
 # - **128×128 resolution and stretching**: fine details are lost (they help tell a realistic painting from a photo)
 #   and elongated pages are distorted.
@@ -901,10 +921,11 @@ display(Markdown(
 #   scanners, other document types, other periods) may lower the results.
 # - **Image quality**: all training images are reasonably clean. Deliverable 2 (denoising) checks how the filter
 #   behaves on noisy images.
-# - **Reproducibility**: small numerical differences are possible from one machine to another.
+# - **Reproducibility**: small numerical differences are possible from one machine to another, and between a CPU
+#   and a GPU run.
 #
 # ### Next steps
-# - Train on all the archives at a higher resolution (with a GPU);
+# - Train on all the archives at a higher resolution;
 # - improve on realistic paintings (targeted augmentation, fine-tuning the last MobileNetV2 blocks);
 # - set the threshold with TouNum based on the cost of each type of error (section 9.2);
 # - plug this filter in front of the pre-processing and captioning modules (deliverables 2 and 3) and measure its
