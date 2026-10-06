@@ -58,12 +58,15 @@ def test_build_patches_from_files(tmp_path):
     assert patches.shape == (6, 16, 16, 3) and patches.dtype == np.uint8
 
 
-def test_add_noise_level_and_identity():
+def test_add_noise_colour_only_level_and_identity():
     rng = np.random.default_rng(0)
-    clean = np.full((64, 64, 3), 128, np.uint8)
+    clean = np.full((128, 128, 3), 128, np.uint8)
     assert (data.add_noise(clean, 0.0, rng, jpeg_quality=None) == clean).all()
-    noisy = data.add_noise(clean, 10.0, rng, jpeg_quality=None).astype(float)
-    assert noisy.std() == pytest.approx(10.0, rel=0.1)
+    ycc = (data.add_noise(clean, 10.0, rng, jpeg_quality=None).astype(np.float32) - clean) @ data.RGB_TO_YCBCR.T
+    assert ycc[..., 0].std() < 0.6                                     # brightness untouched (rounding only)
+    assert ycc[..., 1].std() == pytest.approx(10.0, rel=0.1) and ycc[..., 2].std() == pytest.approx(10.0, rel=0.1)
+    neighbours = np.corrcoef(ycc[:, :-1, 1].ravel(), ycc[:, 1:, 1].ravel())[0, 1]
+    assert 0.1 < neighbours < 0.5                                      # slightly blurred noise
     assert data.add_noise(clean, 10.0, rng).shape == clean.shape   # with the JPEG step
 
 
@@ -84,7 +87,8 @@ def test_fixed_noisy_set_is_reproducible():
 def test_estimate_noise_tracks_sigma():
     rng = np.random.default_rng(0)
     flat = np.full((200, 200, 3), 120, np.uint8)
-    est = [data.estimate_noise(data.add_noise(flat, s, rng, jpeg_quality=None)) for s in (5, 15)]
+    white = lambda s: np.clip(np.rint(flat + rng.normal(0, s, flat.shape)), 0, 255).astype(np.uint8)
+    est = [data.estimate_noise(white(s)) for s in (5, 15)]
     assert est[0] == pytest.approx(5, rel=0.25) and est[1] == pytest.approx(15, rel=0.15)
     assert data.estimate_noise(flat) == 0.0
 
@@ -104,12 +108,44 @@ def test_psnr_ssim():
     assert 20 < evaluation.psnr(x, noisy) < 30
 
 
-@pytest.mark.parametrize("skips", [False, True])
-def test_autoencoder_any_size_and_skips(skips):
-    m = modeling.build_autoencoder(filters=(4, 8), skips=skips)
+@pytest.mark.parametrize("skips, residual", [(False, False), (True, False), (True, True)])
+def test_autoencoder_any_size_skips_and_residual(skips, residual):
+    m = modeling.build_autoencoder(filters=(4, 8), skips=skips, residual=residual)
     assert any("skip" in l.name for l in m.layers) == skips
+    assert ("noisy_minus_noise" in [l.name for l in m.layers]) == residual
     out = modeling.denoise(m, _photo(37, 51))
     assert out.shape == (37, 51, 3) and out.dtype == np.uint8
+
+
+def test_residual_autoencoder_output_stays_in_range():
+    m = modeling.build_autoencoder(filters=(4, 8), skips=True, residual=True)
+    y = m.predict(np.random.default_rng(0).uniform(0, 1, (2, 16, 16, 3)).astype("float32"), verbose=0)
+    assert y.min() >= 0 and y.max() <= 1
+
+
+def test_split_real_pairs_and_pair_crops():
+    files = [f"noisy_{i:03d}.jpg" for i in range(30)]
+    parts = data.split_real_pairs(files, n_val=5, n_test=10)
+    assert [len(parts[k]) for k in ("finetune", "val", "test")] == [15, 5, 10]
+    assert set().union(*parts.values()) == set(files) and not set(parts["test"]) & set(parts["finetune"])
+    clean = [_photo(60, 80, seed=i) for i in range(2)]
+    noisy_c, clean_c = data.pair_crops([c // 2 for c in clean], clean, n=3, size=16)
+    assert noisy_c.shape == clean_c.shape == (6, 16, 16, 3) and np.array_equal(noisy_c, clean_c // 2)
+    x, y = next(iter(data.make_pair_dataset(noisy_c, clean_c, batch_size=4)))
+    assert tuple(x.shape) == (4, 16, 16, 3) and float(y.numpy().max()) <= 1
+
+
+def test_fine_tune_keeps_weights_and_lowers_loss():
+    keras.utils.set_random_seed(0)
+    patches = np.stack([_photo(32, 32, seed=i) for i in range(16)])
+    noisy, clean, _ = data.fixed_noisy_set(patches)
+    m = modeling.build_autoencoder(filters=(8, 16), skips=True, residual=True)
+    modeling.train(m, data.make_dataset(patches, batch_size=8), (noisy, clean), epochs=3, verbose=0)
+    before = m.get_layer("noise").get_weights()[0].copy()
+    pairs = data.make_pair_dataset(data.to_uint8(noisy), patches, batch_size=8)
+    hist = modeling.fine_tune(m, pairs, (noisy, clean), epochs=8, patience=8, verbose=0)
+    assert not np.allclose(before, m.get_layer("noise").get_weights()[0])
+    assert hist["val_loss"].iloc[-1] < hist["val_loss"].iloc[0] and len(hist) == 8
 
 
 def test_autoencoder_learns_and_history_columns():
@@ -135,3 +171,4 @@ def test_plots():
     assert evaluation.plot_history(hist) is not None
     assert evaluation.show_grid({"a": [_photo()], "b": [data.to_float(_photo())]}, ["x"]) is not None
     assert evaluation.draw_autoencoder((32, 64, 128), skips=True) is not None
+    assert evaluation.draw_autoencoder((32, 64, 128), skips=True, residual=True) is not None

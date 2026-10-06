@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 from keras import layers
 
-from . import data
+from . import config, data
 
 PAD_MULTIPLE = 8   # inputs are padded to a multiple of this so the pooling / upsampling sizes match
 
@@ -31,6 +31,7 @@ def _conv(n_filters: int, name: str):
 def build_autoencoder(
     filters: tuple[int, ...] = (32, 64, 128),
     skips: bool = False,
+    residual: bool = False,
     learning_rate: float = 1e-3,
     name: str | None = None,
 ) -> keras.Model:
@@ -41,9 +42,11 @@ def build_autoencoder(
     encoder. Output: Conv2D 1x1 with 3 channels and a sigmoid.
     `skips=True` concatenates each encoder level with the decoder level of the same resolution (U-Net style),
     so fine details do not have to go through the low-resolution bottleneck.
+    `residual=True` makes the last Conv2D 1x1 predict the noise instead of the clean image; the output is the noisy
+    input minus that noise, clipped to [0, 1]. Leaving an image unchanged then only needs a prediction of zero.
     The model is fully convolutional: it accepts any height and width that are multiples of 2**(levels-1).
     """
-    name = name or ("unet_autoencoder" if skips else "conv_autoencoder")
+    name = name or ("residual_" if residual else "") + ("unet_autoencoder" if skips else "conv_autoencoder")
     inputs = keras.Input(shape=(None, None, 3), name="noisy")
     x, encoder_outputs = inputs, []
     for i, n in enumerate(filters[:-1], start=1):
@@ -60,7 +63,12 @@ def build_autoencoder(
             x = layers.Concatenate(name=f"dec{i}_skip")([x, encoder_outputs[i - 1]])
         x = _conv(n, f"dec{i}_conv1")(x)
         x = _conv(n, f"dec{i}_conv2")(x)
-    outputs = layers.Conv2D(3, 1, activation="sigmoid", name="clean")(x)
+    if residual:
+        noise = layers.Conv2D(3, 1, name="noise")(x)
+        x = layers.Subtract(name="noisy_minus_noise")([inputs, noise])
+        outputs = layers.ReLU(max_value=1.0, name="clean")(x)          # clips the pixels to [0, 1]
+    else:
+        outputs = layers.Conv2D(3, 1, activation="sigmoid", name="clean")(x)
     model = keras.Model(inputs, outputs, name=name)
     model.compile(optimizer=keras.optimizers.Adam(learning_rate), loss="mse", metrics=[psnr, ssim])
     return model
@@ -82,6 +90,17 @@ def train(model: keras.Model, train_ds, val_data, epochs: int = 20, early_stoppi
     return df
 
 
+def fine_tune(model: keras.Model, train_ds, val_data, epochs: int = 100,
+              learning_rate: float = config.FINE_TUNE_LEARNING_RATE, patience: int = 8,
+              verbose: int = 2) -> pd.DataFrame:
+    """Continue training an already trained model on new pairs with a lower learning rate (best weights restored).
+
+    The model is compiled again (new Adam state); it keeps its weights. Returns the history like `train`.
+    """
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate), loss="mse", metrics=[psnr, ssim])
+    return train(model, train_ds, val_data, epochs=epochs, patience=patience, verbose=verbose)
+
+
 def predict(model: keras.Model, noisy: np.ndarray, batch_size: int = 16) -> np.ndarray:
     """Denoise a batch of same-size float images in [0, 1] (sizes must already be multiples of PAD_MULTIPLE)."""
     return model.predict(noisy, batch_size=batch_size, verbose=0)
@@ -90,10 +109,11 @@ def predict(model: keras.Model, noisy: np.ndarray, batch_size: int = 16) -> np.n
 def denoise(model: keras.Model, img: np.ndarray) -> np.ndarray:
     """Denoise one uint8 RGB image of any size and return a uint8 image of the same size.
 
-    The image is padded by reflection to a multiple of PAD_MULTIPLE, denoised, then cropped back.
+    The image is padded by reflection to a multiple of PAD_MULTIPLE, denoised, then cropped back. The model is
+    called directly rather than through `predict`, which would compile a new function for every image size.
     """
     h, w = img.shape[:2]
     ph, pw = (-h) % PAD_MULTIPLE, (-w) % PAD_MULTIPLE
     x = np.pad(data.to_float(img), ((0, ph), (0, pw), (0, 0)), mode="reflect")
-    y = model.predict(x[None], verbose=0)[0, :h, :w]
+    y = keras.ops.convert_to_numpy(model(x[None], training=False))[0, :h, :w]
     return data.to_uint8(y)

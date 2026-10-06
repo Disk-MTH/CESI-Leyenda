@@ -15,6 +15,13 @@ def psnr(clean: np.ndarray, test: np.ndarray) -> np.ndarray:
     return tf.image.psnr(np.asarray(clean, np.float32), np.asarray(test, np.float32), max_val=1.0).numpy()
 
 
+def dataset_psnr(clean: np.ndarray, test: np.ndarray) -> float:
+    """PSNR of the mean squared error over all the images (float images in [0, 1]). Unlike the mean of per-image
+    PSNR, it stays finite when some images come out identical (flat white patches, for instance)."""
+    mse = np.mean((np.asarray(clean, np.float64) - np.asarray(test, np.float64)) ** 2)
+    return float(10 * np.log10(1.0 / mse))
+
+
 def ssim(clean: np.ndarray, test: np.ndarray) -> np.ndarray:
     """SSIM per image, for float images in [0, 1] of shape (n, h, w, 3) or (h, w, 3)."""
     return tf.image.ssim(np.asarray(clean, np.float32), np.asarray(test, np.float32), max_val=1.0).numpy()
@@ -92,8 +99,9 @@ def show_grid(columns: dict[str, list[np.ndarray]], row_labels: list[str] | None
     return fig
 
 
-def draw_autoencoder(filters: tuple[int, ...], skips: bool, title: str = ""):
-    """U-shaped diagram of the autoencoder: encoder going down, decoder going up, optional skip connections."""
+def draw_autoencoder(filters: tuple[int, ...], skips: bool, title: str = "", residual: bool = False):
+    """U-shaped diagram of the autoencoder: encoder going down, decoder going up, optional skip connections and
+    residual output."""
     levels = len(filters)
     fig, ax = plt.subplots(figsize=(10, 1.25 * levels + 1.4))
     w, h = 2.6, 0.7
@@ -119,9 +127,18 @@ def draw_autoencoder(filters: tuple[int, ...], skips: bool, title: str = ""):
             ax.annotate("", xy=(7.4 + w / 2, y + 1.2 - 0.5), xytext=(3.7 + w, y + h / 2), arrowprops=dict(arrowstyle="->"))
     top = (levels - 1) * 1.2 + h
     ax.text(w / 2, top + 0.3, "noisy image (H x W x 3)", ha="center", fontsize=9, fontweight="bold")
-    ax.text(7.4 + w / 2, top + 0.3, "denoised image: Conv 1x1, 3 channels, sigmoid", ha="center", fontsize=9, fontweight="bold")
+    if residual:
+        ax.text(7.4 + w / 2, top + 0.3, "denoised = input - noise (Conv 1x1, 3 channels)", ha="center", fontsize=9,
+                fontweight="bold")
+        ax.annotate("", xy=(7.4 + w / 2, top + 0.55), xytext=(w / 2, top + 0.55),
+                    arrowprops=dict(arrowstyle="->", color="#7b3294", lw=1.5, ls="--", connectionstyle="arc3,rad=-0.15"))
+        ax.text(5.0, top + 1.05, "residual connection: the network only predicts the noise", ha="center", fontsize=8.5,
+                color="#7b3294")
+    else:
+        ax.text(7.4 + w / 2, top + 0.3, "denoised image: Conv 1x1, 3 channels, sigmoid", ha="center", fontsize=9,
+                fontweight="bold")
     ax.set_xlim(-0.3, 10.3)
-    ax.set_ylim(-0.6, top + 0.7)
+    ax.set_ylim(-0.6, top + (1.3 if residual else 0.7))
     ax.axis("off")
     ax.set_title(title)
     fig.tight_layout()
