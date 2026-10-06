@@ -16,7 +16,7 @@ REQUIREMENTS = {
     "deliverable3": (11, 10, ["Total params", "BLEU-4", "captioner.keras"]),
 }
 MIN_RESULTS = 4                # computed "Results." cells (real numbers, no hand-written figures)
-FORBIDDEN = ["—"]         # em dash: kept out of the deliverables on purpose
+FORBIDDEN = ["\u2014"]   # em dash: kept out of the deliverables on purpose
 
 
 def check(path: str, partial: bool = False) -> list[str]:

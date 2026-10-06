@@ -1,90 +1,138 @@
-# TouNum — Livrable 1 : classification binaire photo / non-photo
+# TouNum: automatic captioning of digitised photos
 
-Prototype d'un filtre d'entrée pour le workflow de légendage automatique d'images de TouNum : un réseau de neurones
-(TensorFlow / Keras) qui distingue les **photographies** de tous les autres types d'images (peintures, schémas, dessins,
-textes scannés).
+Prototype of the automatic image captioning workflow for TouNum, a company that digitises documents. A folder of
+digitised images goes in; a table comes out with, for every photo, a sentence that describes it. The workflow has
+three modules, one per deliverable:
 
-**Livrable principal : `notebooks/livrable1_classification_binaire.ipynb`** (exécuté, avec ses sorties).
+1. **Filtering** (deliverable 1): a classifier keeps the photos and sets aside paintings, diagrams, sketches and
+   scanned text.
+2. **Pre-processing** (deliverable 2): a convolutional autoencoder (U-Net with a residual output), trained on
+   synthetic colour noise and fine-tuned on real noisy / clean pairs, removes the noise from the photos that need it.
+3. **Captioning** (deliverable 3): a CNN pre-trained on ImageNet (InceptionV3) encodes the photo and a recurrent
+   network (GRU) writes the caption word by word. Versions with and without attention are compared and the one
+   with the better validation score is kept. Trained on 80,000 MS COCO 2017 images.
 
-## Contenu du dépôt
+Each deliverable is an executed Jupyter notebook that explains the approach and shows the results:
 
-| Chemin | Rôle |
+| Deliverable | Notebook | Saved models |
+|---|---|---|
+| 1. Photo / non-photo classification | `notebooks/deliverable1_photo_classification.ipynb` | `models/photo_classifier.keras` (production, MobileNetV2), `models/photo_cnn.keras` (custom CNN) |
+| 2. Denoising with convolutional autoencoders | `notebooks/deliverable2_denoising.ipynb` | `models/denoiser.keras`, `models/denoiser.json` |
+| 3. Captioning and the complete workflow | `notebooks/deliverable3_captioning.ipynb` | `models/captioner.keras`, `models/captioner.json` |
+
+## Repository layout
+
+| Path | Content |
 |---|---|
-| `notebooks/livrable1_classification_binaire.ipynb` | notebook exécuté (livrable) |
-| `notebooks/livrable1_classification_binaire.py` | **source** du notebook (format jupytext « percent ») : c'est ce fichier qu'on édite |
-| `src/tounum_cls/config.py` | tous les réglages : graine, effectifs d'échantillonnage, taille d'image, étapes de difficulté |
-| `src/tounum_cls/data.py` | inventaire des archives, tirage, extraction, chargement, cache, découpage, `tf.data` |
-| `src/tounum_cls/modeling.py` | CNN, MobileNetV2 gelé, entraînement, prédiction |
-| `src/tounum_cls/evaluation.py` | métriques, diagnostic biais/variance, graphiques, schéma d'architecture |
-| `tests/` | tests unitaires (`pytest`) sur données synthétiques |
-| `pyproject.toml`, `uv.lock`, `.python-version` | dépendances épinglées et verrouillage complet (gérés par uv) |
-| `scripts/run_notebook.sh` | régénère et exécute le notebook (`quick` ou `full`) |
-| `scripts/check_notebook.py` | vérifie qu'un notebook exécuté est complet |
-| `models/cnn_photo_final.keras` | CNN maison retenu, sauvegardé (le choix du modèle de production, CNN ou MobileNetV2, est discuté section 10 du notebook) |
-| `docs/superpowers/` | spécification et plan d'implémentation |
-| `Dataset Livrable 1 - *.zip` | archives fournies par TouNum (non versionnées) |
+| `notebooks/*.ipynb` | executed notebooks (the deliverables) |
+| `notebooks/*.py` | notebook sources in jupytext "percent" format: edit these, never the `.ipynb` |
+| `src/tounum_cls/` | deliverable 1: archive sampling, image loading, CNN and MobileNetV2, metrics and plots |
+| `src/tounum_denoise/` | deliverable 2: noisy dataset, synthetic noise, autoencoders, classical filters, noise estimate |
+| `src/tounum_caption/` | deliverable 3: COCO data, InceptionV3 features, captioning model, BLEU, the end-to-end `pipeline.py` |
+| `src/tounum_gpu.py` | lets TensorFlow use an NVIDIA GPU (see "GPU" below) |
+| `tests/` | unit tests (`pytest`) on synthetic data |
+| `scripts/run_notebook.sh` | rebuilds and runs a notebook (`quick` or `full`) |
+| `scripts/check_notebook.py` | checks that an executed notebook is complete |
+| `scripts/caption_folder.py` | runs the complete workflow on a folder from the command line |
+| `scripts/find_noisy_originals.py` | finds the clean COCO originals of the deliverable 2 noisy photos (run once) |
+| `pyproject.toml`, `uv.lock`, `.python-version` | pinned dependencies, managed by uv |
+| `.vscode/` | VS Code tasks (tests, notebook runs, checks, captioning a folder) and debug configurations |
+| `docs/` | design notes and implementation plan written for deliverable 1 |
+| `Dataset Livrable *.zip` | archives provided by TouNum (not versioned) |
+| `data/` | extracted images, caches, COCO sample and features (not versioned, rebuilt by the notebooks) |
 
 ## Installation
 
-Prérequis : [**uv**](https://docs.astral.sh/uv/) (gestionnaire d'environnement ; `curl -LsSf https://astral.sh/uv/install.sh | sh`), ≈ 3 Go de disque pour `data/`, 8 Go de RAM.
-Aucun GPU n'est nécessaire (tout est calibré pour un CPU). Python 3.12 est installé automatiquement par uv si besoin.
+Requirements: [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`), Python 3.12
+(installed by uv if needed), about 50 GB of free disk space for `data/` (COCO images and their InceptionV3
+features), and 48 GB of RAM for deliverable 3: its training features (21 GB) are kept in memory and the notebook
+uses about 30 GB at its peak. An internet
+connection is needed on the first run of deliverables 2 and 3 (COCO images and captions, ImageNet weights).
 
 ```bash
-uv sync        # crée .venv/ avec les versions exactes verrouillées dans uv.lock
+uv sync        # creates .venv/ with the exact versions locked in uv.lock
 ```
 
-L'environnement est **entièrement géré par uv** (pas de `pip install`, pas de `python -m venv`) : `uv.lock` garantit les mêmes versions de paquets sur toutes les machines.
-Toutes les commandes ci-dessous passent par `uv run`. Pour ajouter une dépendance : `uv add <paquet>` (met à jour `pyproject.toml` et `uv.lock` ; les commiter).
+The environment is managed by uv only: no `pip install`, no `python -m venv`. Every command goes through `uv run`.
+To add a dependency: `uv add <package>` (updates `pyproject.toml` and `uv.lock`, commit both).
 
-Placer les 5 archives `Dataset Livrable 1 - {Photo,Painting,Schematics,Text,Sketch}.zip` à la racine du projet.
+Put the archives provided by TouNum at the project root: the five `Dataset Livrable 1 - {Photo,Painting,Schematics,Text,Sketch}.zip`
+and `Dataset Livrable 2.zip`.
 
-## Utilisation
+### GPU
+
+On Linux x86_64, `uv sync` also installs the CUDA libraries as Python packages (`tensorflow[and-cuda]`), so no
+system-wide CUDA install is needed, only the NVIDIA driver. Without a GPU (or on macOS / Windows) TensorFlow runs on
+the CPU and everything still works, only slower.
+
+Two details, both handled by `src/tounum_gpu.py`, which the notebooks, tests and scripts call before importing
+TensorFlow:
+
+- The TensorFlow 2.21.0 wheel misses cuSOLVER in its library search path, and then silently falls back to the CPU.
+  `tounum_gpu.setup()` loads that library first.
+- TensorFlow 2.21 has no compiled kernels for the most recent GPUs (RTX 50xx, compute capability 12.0). The driver
+  compiles them on the first run, which takes a few minutes once, and keeps them in a cache (`~/.nv/ComputeCache`)
+  that `setup()` enlarges so they are not compiled again.
+
+Check: `uv run python -c "import sys; sys.path.insert(0, 'src'); import tounum_gpu; tounum_gpu.setup(); import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"`
+
+## Running the notebooks
+
+The notebooks depend on each other: deliverable 2 reuses the image cache and the classifier of deliverable 1, and
+deliverable 3 reuses the models of deliverables 1 and 2. Run them in order.
 
 ```bash
-# 1. tests unitaires (≈ 15 s)
-uv run pytest -q
+uv run pytest -q                        # unit tests
 
-# 2. vérification rapide que tout s'exécute (2 epochs partout) : écrit notebooks/livrable1_classification_binaire.quick.ipynb
-#    (ignoré par git) et ne touche ni au livrable ni au modèle sauvegardé
-bash scripts/run_notebook.sh quick
+bash scripts/run_notebook.sh 1 quick    # short run (few epochs): writes notebooks/*.quick.ipynb only
+bash scripts/run_notebook.sh 1 full     # full run = the deliverable (.ipynb + saved models)
+bash scripts/run_notebook.sh 2 full
+bash scripts/run_notebook.sh 3 full
 
-# 3. exécution complète = livrable (35 minutes sur un CPU 16 cœurs, mesuré)
-bash scripts/run_notebook.sh full
-
-# 4. contrôle de complétude du notebook exécuté
-uv run python scripts/check_notebook.py notebooks/livrable1_classification_binaire.ipynb
+uv run python scripts/check_notebook.py notebooks/deliverable1_photo_classification.ipynb   # completeness check
 ```
 
-À la première exécution, les images tirées sont extraites vers `data/raw/` et redimensionnées dans `data/cache/` (quelques minutes) ;
-ensuite le cache est relu instantanément. Pour repartir de zéro : `rm -rf data/`.
-Pour ouvrir le notebook de façon interactive : `uv run --with jupyterlab jupyter lab`.
+The quick mode never touches the deliverables or `models/` (its models go to a temporary folder). To open a
+notebook interactively: `uv run --with jupyterlab jupyter lab`, or open it in VS Code with the `.venv` interpreter.
 
-## Utiliser le modèle en production
+On an RTX 5090, a full run takes minutes for deliverable 1 and up to about an hour for deliverables 2 and 3. The
+first run of deliverable 3 also downloads about 82,000 COCO images (around 15 minutes) and computes their features.
+Without a GPU, deliverables 2 and 3 take many hours; reduce `N_TRAIN_IMAGES` in `src/tounum_caption/config.py` and
+the epochs at the top of the notebooks if needed.
 
-Lancer ce script avec `PYTHONPATH=src uv run python script.py` (ou garder la première ligne `sys.path.insert` ci-dessous) :
-le paquet `tounum_cls` se trouve dans `src/`.
+## Captioning a new folder
+
+From the command line:
+
+```bash
+uv run python scripts/caption_folder.py path/to/folder --out captions.csv
+```
+
+From the deliverable 3 notebook: the last cell is self-contained. Set `INPUT_DIR` to the folder and run that cell
+only; it loads the saved models and shows the table and a gallery of the results.
+
+From Python:
 
 ```python
 import sys; sys.path.insert(0, "src")
-import keras
-import numpy as np
-from tounum_cls import data, modeling
+import tounum_gpu; tounum_gpu.setup()
+from tounum_caption.pipeline import CaptionPipeline
 
-model = keras.models.load_model("models/cnn_photo_final.keras")
-batch = np.stack([data.load_image(p) for p in ["a.jpg", "b.png"]])   # RGB 128x128 uint8 ; la normalisation est dans le modèle
-p_photo = modeling.predict_proba(model, batch)                       # probabilité que l'image soit une photo
-is_photo = p_photo >= 0.5                                            # seuil à fixer avec TouNum (voir notebook, section 9.2)
+pipeline = CaptionPipeline.load()                 # models/ of the three deliverables
+results = pipeline.run("path/to/folder")          # pandas DataFrame, one row per image file
+# columns: file, path, p_photo, is_photo, noise_sigma, denoised, caption
 ```
+
+Images are searched recursively (jpg, jpeg, png). Non-photos get no caption; unreadable files are reported in the
+`caption` column instead of stopping the run.
 
 ## Maintenance
 
-- **Changer la taille de l'échantillon** : éditer `POOL_COUNTS` / `EXT_COUNTS` dans `src/tounum_cls/config.py`, supprimer `data/cache/`, relancer le notebook.
-- **Ajouter un type d'image** : ajouter la classe dans `CLASSES`, `ZIP_FILES`, `POOL_COUNTS`, `EXT_COUNTS` et `STAGES` (config) ; les autres modules n'ont pas besoin d'être modifiés.
-- **Modifier le notebook** : éditer le `.py`, puis `bash scripts/run_notebook.sh full`. Ne pas éditer le `.ipynb` à la main.
-- **Reproductibilité** : graine `SEED = 42`. Sur CPU, TensorFlow peut produire de très petites variations numériques entre exécutions ou machines ; les chiffres peuvent varier légèrement ; les diagnostics proches d'un seuil peuvent basculer.
-- Seules les cellules « Lecture automatique » du notebook recalculent leurs chiffres à chaque exécution : le texte d'interprétation doit être relu après un ré-entraînement significatif.
-
-## Limites connues
-
-Voir la section 11 du notebook (échantillon de 6 000 images, résolution 128×128, définition de « photo » dépendante de l'archive d'origine,
-généralisation à d'autres sources non mesurée, images bruitées traitées au livrable 2).
+- **Settings** live in each package's `config.py` (sample sizes, image sizes, noise range, vocabulary size...).
+  After changing a sample size, delete the matching cache (`data/cache/`, `data/denoise_cache/` or `data/features/`)
+  and run the notebook again.
+- **Editing a notebook**: edit the `.py` file, then `bash scripts/run_notebook.sh <n> full`.
+- **Numbers in the notebooks** are computed: the cells starting with "Results." are rebuilt on every run, and the
+  static text does not quote figures that a new run could change.
+- **Reproducibility**: seed `SEED = 42` everywhere. TensorFlow can still give slightly different numbers from one
+  run or machine to another (more so on a GPU), so the last decimals may move.

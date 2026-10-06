@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Tests : pytest (débogueur)",
+      "name": "Tests: pytest (debugger)",
       "type": "debugpy",
       "request": "launch",
       "module": "pytest",
@@ -12,16 +12,32 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "Script : fichier courant (PYTHONPATH=src)",
+      "name": "Script: current file (PYTHONPATH=src)",
       "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "python": "${workspaceFolder}/.venv/bin/python",
       "cwd": "${workspaceFolder}",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/src"
-      },
+      "env": { "PYTHONPATH": "${workspaceFolder}/src" },
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Caption a folder (debugger)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/caption_folder.py",
+      "args": ["${input:folder}", "--out", "data/captions.csv"],
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "folder",
+      "type": "promptString",
+      "description": "Folder of images to caption",
+      "default": "data/demo"
     }
   ]
 }
