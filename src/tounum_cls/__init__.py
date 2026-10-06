@@ -1,1 +1,1 @@
-"""TouNum - Livrable 1 : classification binaire photo / non-photo."""
+"""TouNum - Deliverable 1: binary photo / non-photo classification."""

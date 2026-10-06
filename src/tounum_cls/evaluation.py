@@ -1,4 +1,4 @@
-"""Métriques, graphiques et schéma d'architecture."""
+"""Metrics, plots and architecture diagram."""
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
@@ -18,7 +18,7 @@ from sklearn.metrics import (
 
 
 def evaluate_binary(y_true, y_prob, threshold: float = 0.5) -> dict:
-    """Métriques de classification binaire (photo = classe positive)."""
+    """Binary classification metrics (photo = positive class)."""
     y_true = np.asarray(y_true).astype(int)
     y_prob = np.asarray(y_prob, dtype=float)
     y_pred = (y_prob >= threshold).astype(int)
@@ -36,7 +36,7 @@ def evaluate_binary(y_true, y_prob, threshold: float = 0.5) -> dict:
 
 
 def per_source_accuracy(meta: pd.DataFrame, y_prob, threshold: float = 0.5) -> pd.DataFrame:
-    """Accuracy par classe source (Photo, Painting...). `meta` doit être aligné avec `y_prob`."""
+    """Accuracy per source class (Photo, Painting...). `meta` must be aligned with `y_prob`."""
     pred = (np.asarray(y_prob) >= threshold).astype(int)
     df = pd.DataFrame({"source": meta["source"].to_numpy(), "ok": pred == meta["label"].to_numpy()})
     out = df.groupby("source")["ok"].agg(n="size", accuracy="mean").reset_index()
@@ -50,17 +50,17 @@ def diagnose_fit(
     drift_max: float = 0.05,
     restored_best: bool = False,
 ) -> dict:
-    """Diagnostic biais/variance chiffré à partir de l'historique d'entraînement.
+    """Bias/variance diagnosis from the training history, with explicit thresholds.
 
-    * biais élevé (sous-apprentissage)  : accuracy d'entraînement finale < `low_acc`
-    * variance élevée (sur-apprentissage) : écart accuracy train - val > `gap_max`
-      OU val_loss finale supérieure de plus de `drift_max` à son minimum (la val_loss remonte)
-    * sinon : compromis correct.
-    Avec `restored_best=True` (early stopping avec restauration des meilleurs poids), le diagnostic décrit
-    les poids restaurés : on utilise la ligne de l'epoch de plus faible val_loss et la remontée est nulle.
-    La clé `kept_epoch` indique l'epoch de la ligne utilisée.
-    Attention : pendant l'entraînement, dropout et augmentation sont actifs, ce qui rend l'accuracy
-    d'entraînement pessimiste (l'écart train/val est alors sous-estimé).
+    * high bias (underfitting): final training accuracy < `low_acc`
+    * high variance (overfitting): train - val accuracy gap > `gap_max`
+      OR final val_loss more than `drift_max` above its minimum (val_loss going back up)
+    * otherwise: balanced.
+    With `restored_best=True` (early stopping that restores the best weights), the diagnosis describes the
+    restored weights: it reads the row of the lowest val_loss and the drift is zero.
+    The `kept_epoch` key gives the epoch of the row that was read.
+    Note: dropout and augmentation are active during training, so the training accuracy is pessimistic
+    (and the train/val gap is underestimated).
     """
     best_pos = int(hist["val_loss"].to_numpy().argmin())
     last = hist.iloc[best_pos] if restored_best else hist.iloc[-1]
@@ -68,11 +68,11 @@ def diagnose_fit(
     best_epoch = int(hist["epoch"].iloc[best_pos])
     drift = 0.0 if restored_best else float(last["val_loss"] - hist["val_loss"].min())
     if last["accuracy"] < low_acc:
-        verdict = "biais élevé (sous-apprentissage)"
+        verdict = "high bias (underfitting)"
     elif gap > gap_max or drift > drift_max:
-        verdict = "variance élevée (sur-apprentissage)"
+        verdict = "high variance (overfitting)"
     else:
-        verdict = "compromis biais/variance correct"
+        verdict = "balanced (no clear bias or variance problem)"
     return {
         "train_acc": float(last["accuracy"]), "val_acc": float(last["val_accuracy"]), "gap_acc": gap,
         "train_loss": float(last["loss"]), "val_loss": float(last["val_loss"]),
@@ -82,31 +82,31 @@ def diagnose_fit(
 
 
 def plot_history(hist: pd.DataFrame, title: str = ""):
-    """Courbes loss (gauche) et accuracy (droite), entraînement vs validation, par epoch."""
+    """Loss (left) and accuracy (right) curves per epoch, training vs validation."""
     fig, axes = plt.subplots(1, 2, figsize=(11, 3.8))
-    for ax, metric, label in zip(axes, ["loss", "accuracy"], ["Erreur (binary cross-entropy)", "Accuracy"]):
-        ax.plot(hist["epoch"], hist[metric], marker="o", ms=3, label="entraînement")
+    for ax, metric, label in zip(axes, ["loss", "accuracy"], ["Loss (binary cross-entropy)", "Accuracy"]):
+        ax.plot(hist["epoch"], hist[metric], marker="o", ms=3, label="training")
         ax.plot(hist["epoch"], hist[f"val_{metric}"], marker="o", ms=3, label="validation")
         ax.set_xlabel("epoch")
         ax.set_ylabel(label)
         ax.grid(alpha=0.3)
         ax.legend()
-    axes[0].set_title(f"{title} - erreur" if title else "Erreur")
-    axes[1].set_title(f"{title} - accuracy" if title else "Accuracy")
+    axes[0].set_title(f"{title}: loss" if title else "Loss")
+    axes[1].set_title(f"{title}: accuracy" if title else "Accuracy")
     fig.tight_layout()
     return fig
 
 
 def plot_confusion(y_true, y_prob, threshold: float = 0.5, title: str = ""):
-    """Matrice de confusion annotée (lignes = réel, colonnes = prédit)."""
+    """Annotated confusion matrix (rows = true class, columns = predicted)."""
     y_pred = (np.asarray(y_prob) >= threshold).astype(int)
     cm = confusion_matrix(np.asarray(y_true).astype(int), y_pred, labels=[0, 1])
     fig, ax = plt.subplots(figsize=(3.8, 3.4))
     ax.imshow(cm, cmap="Blues")
     ax.set_xticks([0, 1], ["non-photo", "photo"])
     ax.set_yticks([0, 1], ["non-photo", "photo"])
-    ax.set_xlabel("prédit")
-    ax.set_ylabel("réel")
+    ax.set_xlabel("predicted")
+    ax.set_ylabel("true")
     ax.set_title(title)
     for i in range(2):
         for j in range(2):
@@ -117,12 +117,12 @@ def plot_confusion(y_true, y_prob, threshold: float = 0.5, title: str = ""):
 
 
 def plot_precision_recall(y_true, y_prob, title: str = ""):
-    """Courbe précision/rappel pour discuter du choix du seuil."""
+    """Precision/recall curve, used to discuss the decision threshold."""
     p, r, _ = precision_recall_curve(np.asarray(y_true).astype(int), y_prob)
     fig, ax = plt.subplots(figsize=(4.5, 3.6))
     ax.plot(r, p)
-    ax.set_xlabel("rappel (photos retrouvées)")
-    ax.set_ylabel("précision (photos prédites qui en sont)")
+    ax.set_xlabel("recall (share of photos found)")
+    ax.set_ylabel("precision (share of predicted photos that are photos)")
     ax.set_title(title)
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -130,9 +130,9 @@ def plot_precision_recall(y_true, y_prob, title: str = ""):
 
 
 def show_errors(X, meta: pd.DataFrame, y_prob, kind: str = "fp", n: int = 8, threshold: float = 0.5):
-    """Galerie des erreurs. kind='fp' : non-photos prédites photo ; 'fn' : photos manquées.
+    """Error gallery. kind='fp': non-photos predicted as photos; 'fn': missed photos.
 
-    Les plus « confiantes » (les plus graves) d'abord. Renvoie la figure (ou None s'il n'y a aucune erreur).
+    Most confident (worst) errors first. Returns the figure, or None if there is no error.
     """
     y_prob = np.asarray(y_prob)
     label = meta["label"].to_numpy()
@@ -162,9 +162,9 @@ _LAYER_COLORS = {
 
 
 def draw_architecture(model, title: str | None = None):
-    """Schéma vertical du réseau dessiné avec matplotlib (aucun outil externe type graphviz requis).
+    """Vertical diagram of the network drawn with matplotlib (no graphviz needed).
 
-    Une boîte par couche : nom, type, forme de sortie. Flèches entre couches.
+    One box per layer (name, type, output shape), with arrows between layers.
     """
     layers_ = list(model.layers)
     n = len(layers_)
@@ -183,6 +183,6 @@ def draw_architecture(model, title: str | None = None):
     ax.set_xlim(-0.2, 5.2)
     ax.set_ylim(-0.3, n * (box_h + gap))
     ax.axis("off")
-    ax.set_title(title or f"Architecture : {model.name} ({model.count_params():,} paramètres)")
+    ax.set_title(title or f"Architecture: {model.name} ({model.count_params():,} parameters)")
     fig.tight_layout()
     return fig

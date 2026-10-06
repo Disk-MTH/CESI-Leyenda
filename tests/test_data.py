@@ -34,14 +34,14 @@ def test_sample_dataset_disjoint_counts_and_labels():
         assert (sub["subset"] == "ext").sum() == want_ext
     assert set(df.loc[df["source"] == "Photo", "label"]) == {1}
     assert set(df.loc[df["source"] != "Photo", "label"]) == {0}
-    # reproductible
+    # reproducible
     pd.testing.assert_frame_equal(df, data.sample_dataset(_inventory(), pool, ext, seed=1))
 
 
 def test_sample_dataset_not_enough_images_raises():
     pool = {c: 15 for c in config.CLASSES}
     ext = {c: 15 for c in config.CLASSES}
-    with pytest.raises(ValueError, match="disponibles"):
+    with pytest.raises(ValueError, match="available"):
         data.sample_dataset(_inventory(20), pool, ext)
 
 
@@ -60,7 +60,7 @@ def test_extract_files_writes_only_selected_and_is_idempotent(make_zip, tmp_path
     assert all((raw / s).exists() for s in config.CLASSES)
     assert all(pd.Series(out["path"]).map(lambda p: os.path.exists(p)))
     assert len(list((raw / "Photo").glob("*"))) == 3
-    data.extract_files(sample, tmp_path, raw)  # 2e appel sans erreur
+    data.extract_files(sample, tmp_path, raw)  # second call works
 
 
 def test_extract_files_reextracts_truncated_file(make_zip, tmp_path):
@@ -97,7 +97,7 @@ def test_load_images_skips_corrupt(tmp_path, capsys):
     meta = pd.DataFrame({"path": [str(good), str(bad)], "label": [1, 0], "source": ["Photo", "Text"]})
     X, meta_ok = data.load_images(meta, size=16, workers=2)
     assert X.shape == (1, 16, 16, 3) and len(meta_ok) == 1
-    assert "illisible" in capsys.readouterr().out
+    assert "unreadable" in capsys.readouterr().out
 
 
 def _meta(n_per=40):
@@ -116,7 +116,7 @@ def test_add_split_proportions_stratified_and_disjoint():
     assert (m.loc[m["subset"] == "ext", "split"] == "ext").all()
     counts = pool["split"].value_counts()
     assert counts["train"] == 140 and counts["val"] == 30 and counts["test"] == 30
-    for c in config.CLASSES:  # stratifié par classe source
+    for c in config.CLASSES:  # stratified by source class
         assert (pool[pool["source"] == c]["split"] == "train").sum() == 28
     sets = [set(pool.loc[pool["split"] == s, "member"]) for s in ("train", "val", "test")]
     assert not (sets[0] & sets[1]) and not (sets[0] & sets[2]) and not (sets[1] & sets[2])
@@ -129,7 +129,7 @@ def test_select_filters_split_and_sources():
     assert set(ms["source"]) == {"Photo", "Text"}
     assert len(Xs) == len(ys) == len(ms)
     assert (ms["label"].to_numpy() == ys).all()
-    # X est bien aligné avec meta : la valeur du pixel = index de la ligne d'origine
+    # X is aligned with meta: the pixel value is the index of the original row
     orig = m[(m["split"] == "train") & m["source"].isin(["Photo", "Text"])].index.to_numpy()
     assert (Xs[:, 0, 0, 0] == orig.astype(np.uint8)).all()
     Xa, _, ma = data.select(X, m, "ext")
@@ -162,7 +162,7 @@ def test_prepare_dataset_end_to_end_and_cache(make_zip, tmp_path, monkeypatch):
     assert X.shape[0] == len(meta) == 5 * 20 + 4 * 3 + (32 - 20) and X.dtype == np.uint8
     assert X.shape[1:] == (128, 128, 3)
     assert set(meta["split"]) == {"train", "val", "test", "ext"}
-    # 2e appel : lecture du cache, chemins ré-absolutisés, mêmes données
+    # second call: read from cache, paths made absolute again, same data
     X2, meta2 = data.prepare_dataset()
     assert (X2 == X).all() and meta2["path"].map(lambda p: os.path.exists(p)).all()
     assert not (tmp_path / "data" / "cache" / "meta.csv").read_text().count(str(tmp_path))

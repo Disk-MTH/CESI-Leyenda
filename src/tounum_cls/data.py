@@ -1,4 +1,4 @@
-"""Inventaire, échantillonnage, extraction, chargement et découpage des images."""
+"""Inventory, sampling, extraction, loading and splitting of the images."""
 from __future__ import annotations
 
 import os
@@ -14,16 +14,16 @@ from sklearn.model_selection import train_test_split
 
 from . import config
 
-# Certaines peintures sont très grandes (jusqu'à 68 Mpx dans les archives) : on relève le seuil de Pillow
-# au-dessus de la plus grande image tout en gardant une protection contre les "decompression bombs".
+# Some paintings are very large (up to 68 Mpx in the archives). Pillow's limit is raised above the largest
+# image while still protecting against decompression bombs.
 Image.MAX_IMAGE_PIXELS = 200_000_000
 
 
-# --------------------------------------------------------------------------- inventaire
+# --------------------------------------------------------------------------- inventory
 def list_zip_images(zip_path: str | Path) -> list[str]:
-    """Noms (triés) des images d'une archive : extensions jpg/jpeg/png uniquement.
+    """Sorted image names in an archive (jpg/jpeg/png only).
 
-    Ignore les dossiers, `desktop.ini`, les entrées `__MACOSX` et les fichiers cachés.
+    Skips folders, `desktop.ini`, `__MACOSX` entries and hidden files.
     """
     names = []
     with zipfile.ZipFile(zip_path) as zf:
@@ -39,21 +39,21 @@ def list_zip_images(zip_path: str | Path) -> list[str]:
 
 
 def build_inventory(zip_dir: str | Path = config.ZIP_DIR) -> dict[str, list[str]]:
-    """{classe: [noms de fichiers dans l'archive]} pour les 5 archives."""
+    """{class: [file names in the archive]} for the 5 archives."""
     return {c: list_zip_images(Path(zip_dir) / z) for c, z in config.ZIP_FILES.items()}
 
 
-# --------------------------------------------------------------------------- échantillonnage
+# --------------------------------------------------------------------------- sampling
 def sample_dataset(
     inventory: dict[str, list[str]],
     pool_counts: dict[str, int],
     ext_counts: dict[str, int | None],
     seed: int = config.SEED,
 ) -> pd.DataFrame:
-    """Tire, par classe, un pool de modélisation puis un test étendu **disjoints**.
+    """Draw, for each class, a modelling pool and an extended test set that do not overlap.
 
-    Colonnes : member (nom dans le zip), source (classe), label (1 = photo), subset ('pool' | 'ext').
-    `ext_counts[c] = None` -> toutes les images restantes de la classe.
+    Columns: member (name in the zip), source (class), label (1 = photo), subset ('pool' | 'ext').
+    `ext_counts[c] = None` means every image of the class left after the pool.
     """
     rng = np.random.default_rng(seed)
     rows = []
@@ -63,7 +63,7 @@ def sample_dataset(
         n_ext_eff = len(members) - n_pool if n_ext is None else n_ext
         if n_pool + n_ext_eff > len(members):
             raise ValueError(
-                f"{source}: {n_pool}+{n_ext_eff} images demandées mais seulement {len(members)} disponibles"
+                f"{source}: {n_pool}+{n_ext_eff} images requested but only {len(members)} available"
             )
         order = rng.permutation(len(members))
         label = int(source == config.POSITIVE_CLASS)
@@ -84,10 +84,10 @@ def extract_files(
     zip_dir: str | Path = config.ZIP_DIR,
     raw_dir: str | Path = config.RAW_DIR,
 ) -> pd.DataFrame:
-    """Extrait uniquement les fichiers du tirage vers raw_dir/<source>/<nom>. Ajoute la colonne `path`.
+    """Extract only the sampled files to raw_dir/<source>/<name> and add the `path` column.
 
-    Idempotent : un fichier déjà extrait n'est pas réécrit, sauf si sa taille diffère de celle de l'archive
-    (extraction interrompue ou fichier tronqué).
+    Idempotent: a file already on disk is not rewritten unless its size differs from the archive
+    (interrupted extraction or truncated file).
     """
     raw_dir = Path(raw_dir)
     out = sample.copy()
@@ -105,12 +105,11 @@ def extract_files(
     return out
 
 
-# --------------------------------------------------------------------------- chargement
-def load_image(path: str | Path, size: int = config.IMG_SIZE) -> np.ndarray:
-    """Charge une image avec ImageIO et la renvoie en (size, size, 3) uint8 RGB.
+# --------------------------------------------------------------------------- loading
+def read_rgb(path: str | Path) -> np.ndarray:
+    """Read an image with ImageIO at its original size, as (height, width, 3) uint8 RGB.
 
-    Gère niveaux de gris (2D ou 1 canal), RGBA (alpha supprimé) et profondeur 16 bits.
-    Le redimensionnement (bilinéaire) ne conserve pas le ratio : l'image est étirée.
+    Handles grayscale (2D or 1 channel), RGBA (alpha dropped) and 16-bit depth.
     """
     arr = np.asarray(iio.imread(path))
     if arr.dtype != np.uint8:
@@ -120,27 +119,39 @@ def load_image(path: str | Path, size: int = config.IMG_SIZE) -> np.ndarray:
         arr = np.stack([arr] * 3, axis=-1)
     elif arr.shape[-1] == 1:
         arr = np.repeat(arr, 3, axis=-1)
-    elif arr.shape[-1] == 2:                       # gris + alpha
+    elif arr.shape[-1] == 2:                       # gray + alpha
         arr = np.repeat(arr[..., :1], 3, axis=-1)
     elif arr.shape[-1] == 4:                       # RGBA
         arr = arr[..., :3]
-    img = Image.fromarray(arr).resize((size, size), Image.BILINEAR)
-    return np.asarray(img, dtype=np.uint8)
+    return np.ascontiguousarray(arr)
+
+
+def load_image(path: str | Path, size: int = config.IMG_SIZE) -> np.ndarray:
+    """Load an image with ImageIO and return it as (size, size, 3) uint8 RGB.
+
+    The bilinear resize does not keep the aspect ratio: the image is stretched.
+    """
+    return resize(read_rgb(path), size)
+
+
+def resize(img: np.ndarray, size: int = config.IMG_SIZE) -> np.ndarray:
+    """Resize a uint8 RGB image to (size, size, 3) with bilinear interpolation (aspect ratio not kept)."""
+    return np.asarray(Image.fromarray(img).resize((size, size), Image.BILINEAR), dtype=np.uint8)
 
 
 def load_images(
     meta: pd.DataFrame, size: int = config.IMG_SIZE, workers: int | None = None
 ) -> tuple[np.ndarray, pd.DataFrame]:
-    """Charge toutes les images de meta['path'] (en parallèle).
+    """Load every image in meta['path'] (in parallel).
 
-    Renvoie (X, meta_ok) : les images illisibles sont écartées (et signalées par un print).
-    X.shape == (len(meta_ok), size, size, 3), dtype uint8, aligné ligne à ligne avec meta_ok.
+    Returns (X, meta_ok): unreadable images are dropped (and reported with a print).
+    X.shape == (len(meta_ok), size, size, 3), dtype uint8, aligned row by row with meta_ok.
     """
     def _safe(path):
         try:
             return load_image(path, size)
-        except Exception as exc:  # image corrompue : on l'écarte
-            print(f"[WARN] image illisible ignorée : {path} ({type(exc).__name__}: {exc})")
+        except Exception as exc:  # corrupt image: skip it
+            print(f"[WARN] unreadable image skipped: {path} ({type(exc).__name__}: {exc})")
             return None
 
     workers = workers or min(8, os.cpu_count() or 1)
@@ -152,10 +163,10 @@ def load_images(
     return X, meta_ok
 
 
-# --------------------------------------------------------------------------- découpage
+# --------------------------------------------------------------------------- splitting
 def add_split(meta: pd.DataFrame, seed: int = config.SEED) -> pd.DataFrame:
-    """Ajoute la colonne `split` : train/val/test (70/15/15, stratifié par classe source) pour le pool,
-    'ext' pour le test étendu."""
+    """Add the `split` column: train/val/test (70/15/15, stratified by source class) for the pool,
+    'ext' for the extended test set."""
     meta = meta.copy()
     meta["split"] = "ext"
     pool_idx = meta.index[meta["subset"] == "pool"]
@@ -175,9 +186,9 @@ def add_split(meta: pd.DataFrame, seed: int = config.SEED) -> pd.DataFrame:
 def select(
     X: np.ndarray, meta: pd.DataFrame, split: str, sources: list[str] | None = None
 ) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
-    """Sous-ensemble (X, y, meta) d'un split, éventuellement limité à certaines classes sources.
+    """(X, y, meta) subset of one split, optionally restricted to some source classes.
 
-    Les photos sont toujours conservées ; `sources` ne liste que les classes NÉGATIVES voulues.
+    Photos are always kept; `sources` lists only the NEGATIVE classes wanted.
     """
     mask = meta["split"] == split
     if sources is not None:
@@ -187,14 +198,14 @@ def select(
 
 
 def class_weights(y: np.ndarray) -> dict[int, float]:
-    """Poids 'balanced' : n / (2 * n_classe). Compense le déséquilibre des étapes 1 à 3."""
+    """'Balanced' weights: n / (2 * n_class). Offsets the class imbalance of stages 1 to 3."""
     y = np.asarray(y).astype(int)
     n = len(y)
     return {c: n / (2.0 * max(1, int((y == c).sum()))) for c in (0, 1)}
 
 
 def make_dataset(X, y, batch_size=config.BATCH_SIZE, shuffle=False, seed=config.SEED):
-    """tf.data.Dataset (X uint8, y float32) -> batchs ; shuffle uniquement pour l'entraînement."""
+    """tf.data.Dataset of (X uint8, y float32) batches; shuffle only for training."""
     import tensorflow as tf
 
     ds = tf.data.Dataset.from_tensor_slices((X, np.asarray(y, dtype="float32")))
@@ -205,12 +216,12 @@ def make_dataset(X, y, batch_size=config.BATCH_SIZE, shuffle=False, seed=config.
 
 # --------------------------------------------------------------------------- orchestration
 def prepare_dataset(force: bool = False) -> tuple[np.ndarray, pd.DataFrame]:
-    """Pipeline complet : inventaire -> tirage -> extraction -> chargement -> split -> cache.
+    """Full pipeline: inventory -> sampling -> extraction -> loading -> split -> cache.
 
-    Au 2e appel, relit simplement data/cache/X.npy et data/cache/meta.csv.
-    Renvoie (X, meta) ; meta a les colonnes member, source, label, subset, path, split.
-    `path` est stocké relatif à la racine du projet dans meta.csv (le projet reste déplaçable)
-    et renvoyé en absolu.
+    Later calls simply read data/cache/X.npy and data/cache/meta.csv back.
+    Returns (X, meta); meta has the columns member, source, label, subset, path, split.
+    `path` is stored relative to the project root in meta.csv (so the project can be moved)
+    and returned as an absolute path.
     """
     x_path, m_path = config.CACHE_DIR / "X.npy", config.CACHE_DIR / "meta.csv"
     if x_path.exists() and m_path.exists() and not force:

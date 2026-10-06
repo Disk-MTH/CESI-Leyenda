@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import matplotlib
 
-matplotlib.use("Agg")  # pas d'affichage pendant les tests
+matplotlib.use("Agg")  # no display during tests
 
 
 def _img_bytes(fmt, mode="RGB", size=(40, 30), seed=0):
@@ -29,7 +29,7 @@ def _img_bytes(fmt, mode="RGB", size=(40, 30), seed=0):
 
 @pytest.fixture
 def make_zip(tmp_path):
-    """Fabrique une archive {classe}.zip avec n jpg + parasites (desktop.ini, dossier, txt)."""
+    """Build a {class}.zip archive with n jpg files plus junk entries (desktop.ini, folder, txt)."""
 
     def _make(name, n, folder=None, extra_png_gray=0):
         folder = folder or name

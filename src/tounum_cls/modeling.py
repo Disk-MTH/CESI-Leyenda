@@ -1,4 +1,4 @@
-"""Construction et entraînement des réseaux (Keras 3 / TensorFlow)."""
+"""Building and training the networks (Keras 3 / TensorFlow)."""
 from __future__ import annotations
 
 import keras
@@ -28,15 +28,15 @@ def build_cnn(
     bn_momentum: float = 0.9,
     name: str = "cnn_photo",
 ) -> keras.Model:
-    """CNN « maison » pour photo (1) vs non-photo (0).
+    """Custom CNN for photo (1) vs non-photo (0).
 
-    Entrée : images uint8 (img_size, img_size, 3) ; la normalisation /255 est DANS le modèle.
-    Un bloc = Conv2D 3x3 (padding same) -> BatchNormalization -> ReLU -> MaxPooling2D 2x2.
-    Tête : GlobalAveragePooling2D -> Dense(dense_units, relu) -> [Dropout] -> Dense(1, sigmoid).
-    `augmentation=True` ajoute des transformations aléatoires, actives seulement à l'entraînement.
-    `l2` pénalise les poids des Conv2D et de la Dense cachée.
-    `bn_momentum=0.9` (au lieu de 0.99 par défaut) : les statistiques mobiles de BatchNorm se calibrent en
-    quelques dizaines de pas, ce qui évite une validation erratique pendant les premières epochs.
+    Input: uint8 images (img_size, img_size, 3); the /255 scaling is INSIDE the model.
+    One block = Conv2D 3x3 (same padding) -> BatchNormalization -> ReLU -> MaxPooling2D 2x2.
+    Head: GlobalAveragePooling2D -> Dense(dense_units, relu) -> [Dropout] -> Dense(1, sigmoid).
+    `augmentation=True` adds random transformations that are only active during training.
+    `l2` penalises the weights of the Conv2D layers and of the hidden Dense layer.
+    `bn_momentum=0.9` (instead of the default 0.99): the BatchNorm moving statistics settle within a few
+    dozen steps, which avoids an erratic validation curve during the first epochs.
     """
     reg = regularizers.l2(l2) if l2 > 0 else None
     inputs = keras.Input(shape=(img_size, img_size, 3), name="image")
@@ -61,12 +61,12 @@ def build_cnn(
 
 
 def build_mobilenet(
-    img_size: int = config.IMG_SIZE, weights: str | None = "imagenet", name: str = "mobilenetv2_gele"
+    img_size: int = config.IMG_SIZE, weights: str | None = "imagenet", name: str = "mobilenetv2_frozen"
 ) -> keras.Model:
-    """MobileNetV2 gelé (extracteur de caractéristiques) + tête binaire. Sert de comparaison au CNN maison.
+    """Frozen MobileNetV2 (feature extractor) + binary head. Transfer-learning alternative to the custom CNN.
 
-    Entrée : images uint8 ; mise à l'échelle [-1, 1] attendue par MobileNetV2 faite dans le modèle.
-    `weights=None` (tests) évite le téléchargement des poids ImageNet.
+    Input: uint8 images; the [-1, 1] scaling MobileNetV2 expects is done inside the model.
+    `weights=None` (tests) avoids downloading the ImageNet weights.
     """
     base = keras.applications.MobileNetV2(
         input_shape=(img_size, img_size, 3), include_top=False, weights=weights
@@ -91,11 +91,11 @@ def train(
     patience: int = 4,
     verbose: int = 2,
 ) -> pd.DataFrame:
-    """Entraîne le modèle et renvoie l'historique sous forme de DataFrame (une ligne par epoch).
+    """Train the model and return its history as a DataFrame (one row per epoch).
 
-    Colonnes : epoch, accuracy, auc, loss, val_accuracy, val_auc, val_loss.
-    Avec early_stopping=True : arrêt après `patience` epochs sans amélioration de val_loss,
-    et restauration des meilleurs poids.
+    Columns: epoch, accuracy, auc, loss, val_accuracy, val_auc, val_loss.
+    With early_stopping=True, training stops after `patience` epochs without a better val_loss
+    and the best weights are restored.
     """
     callbacks = []
     if early_stopping:
@@ -108,7 +108,7 @@ def train(
         epochs=epochs,
         class_weight=class_weight,
         callbacks=callbacks,
-        shuffle=False,  # le mélange est fait par tf.data ; évite un avertissement Keras
+        shuffle=False,  # tf.data already shuffles; this avoids a Keras warning
         verbose=verbose,
     )
     df = pd.DataFrame(hist.history)
@@ -117,5 +117,5 @@ def train(
 
 
 def predict_proba(model: keras.Model, X, batch_size: int = config.BATCH_SIZE):
-    """Probabilités P(photo) sous forme de vecteur 1D float."""
+    """P(photo) probabilities as a 1D float vector."""
     return model.predict(X, batch_size=batch_size, verbose=0).ravel()

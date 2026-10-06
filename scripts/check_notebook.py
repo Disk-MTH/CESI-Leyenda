@@ -1,16 +1,22 @@
-"""Vérifie qu'un notebook exécuté est complet : exécuté sans erreur, sections et figures présentes.
+"""Check that an executed deliverable notebook is complete: run without errors, sections and figures present.
 
-Usage : python scripts/check_notebook.py notebooks/livrable1_classification_binaire.ipynb [--partial]
---partial : notebook en cours de construction -> vérifie seulement l'exécution sans erreur et affiche les comptes.
-Code de sortie 0 si tout est conforme, 1 sinon.
+Usage: python scripts/check_notebook.py notebooks/deliverable1_photo_classification.ipynb [--partial]
+--partial: notebook still being built (or quick run) -> only checks that it ran without errors and prints counts.
+Exit code 0 if everything is fine, 1 otherwise.
 """
 import sys
+from pathlib import Path
 
 import nbformat
 
-REQUIRED_HEADINGS = [f"## {i}." for i in range(0, 12)]
-MIN_FIGURES = 13
-MIN_AUTO_READINGS = 5          # cellules « Lecture automatique » (chiffres réels, pas de texte figé)
+# Per-deliverable requirements: (number of numbered sections, minimum figures, strings expected in the outputs)
+REQUIREMENTS = {
+    "deliverable1": (12, 14, ["Total params", "binary_crossentropy", "pairwise disjoint", "photo_classifier.keras"]),
+    "deliverable2": (11, 12, ["Total params", "PSNR", "SSIM", "denoiser.keras"]),
+    "deliverable3": (11, 10, ["Total params", "BLEU-4", "captioner.keras"]),
+}
+MIN_RESULTS = 4                # computed "Results." cells (real numbers, no hand-written figures)
+FORBIDDEN = ["—"]         # em dash: kept out of the deliverables on purpose
 
 
 def check(path: str, partial: bool = False) -> list[str]:
@@ -24,39 +30,37 @@ def check(path: str, partial: bool = False) -> list[str]:
     )
     problems = []
     n_fig = sum(1 for o in outputs if "image/png" in o.get("data", {}))
-    if partial:
-        if any(c.execution_count is None for c in code):
-            problems.append("des cellules de code n'ont pas été exécutées")
-        if any(o.output_type == "error" for o in outputs):
-            problems.append("une cellule contient une erreur")
-        print(f"{path}: {len(code)} cellules de code, {n_fig} figures")
-        return problems
-    for heading in REQUIRED_HEADINGS:
-        if heading not in markdown:
-            problems.append(f"section manquante : « {heading} »")
+    n_results = text.count("**Results")
     if any(c.execution_count is None for c in code):
-        problems.append("des cellules de code n'ont pas été exécutées")
+        problems.append("some code cells were not executed")
     if any(o.output_type == "error" for o in outputs):
-        problems.append("une cellule contient une erreur")
-    if n_fig < MIN_FIGURES:
-        problems.append(f"seulement {n_fig} figures (minimum {MIN_FIGURES})")
-    if "Total params" not in text:
-        problems.append("model.summary() absent (E1)")
-    if "binary_crossentropy" not in text:
-        problems.append("code de build_cnn absent des sorties (E1)")
-    if text.count("Lecture automatique") < MIN_AUTO_READINGS:
-        problems.append(f"moins de {MIN_AUTO_READINGS} cellules « Lecture automatique »")
-    if "disjoints" not in text:
-        problems.append("contrôle anti-fuite absent")
-    if "mode QUICK : False" not in text:
-        problems.append("le notebook n'a pas été exécuté en mode complet")
-    print(f"{path}: {len(code)} cellules de code, {n_fig} figures, {text.count('Lecture automatique')} lectures automatiques")
+        problems.append("a cell raised an error")
+    print(f"{path}: {len(code)} code cells, {n_fig} figures, {n_results} computed result cells")
+    if partial:
+        return problems
+    key = Path(path).name.split("_")[0]
+    n_sections, min_fig, expected = REQUIREMENTS[key]
+    for i in range(n_sections):
+        if f"## {i}." not in markdown:
+            problems.append(f"missing section: '## {i}.'")
+    if n_fig < min_fig:
+        problems.append(f"only {n_fig} figures (minimum {min_fig})")
+    for s in expected:
+        if s not in text:
+            problems.append(f"expected output not found: '{s}'")
+    if n_results < MIN_RESULTS:
+        problems.append(f"fewer than {MIN_RESULTS} computed result cells")
+    for s in FORBIDDEN:
+        if s in markdown or s in text:
+            problems.append(f"forbidden character {s!r} found")
+    if "QUICK mode: False" not in text:
+        problems.append("the notebook was not run in full mode")
     return problems
 
 
 if __name__ == "__main__":
     issues = check(sys.argv[1], partial="--partial" in sys.argv)
     for issue in issues:
-        print("  ✗", issue)
-    print("OK" if not issues else f"{len(issues)} problème(s)")
+        print("  x", issue)
+    print("OK" if not issues else f"{len(issues)} problem(s)")
     sys.exit(1 if issues else 0)
