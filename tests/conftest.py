@@ -9,6 +9,10 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+import tounum_gpu
+
+tounum_gpu.setup()  # same device setup as the notebooks (GPU if there is one)
+
 import matplotlib
 
 matplotlib.use("Agg")  # no display during tests

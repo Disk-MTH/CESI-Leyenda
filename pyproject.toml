@@ -1,10 +1,12 @@
 [project]
 name = "tounum-cls"
 version = "0.1.0"
-description = "TouNum - classification binaire photo / non-photo (livrable 1)"
+description = "TouNum - photo classification, denoising and captioning (deliverables 1 to 3)"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "tensorflow==2.21.0",
+    # CUDA libraries on Linux x86_64 (used when an NVIDIA GPU is present, ignored otherwise); plain CPU build elsewhere
+    "tensorflow[and-cuda]==2.21.0 ; sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "tensorflow==2.21.0 ; sys_platform != 'linux' or platform_machine != 'x86_64'",
     "keras==3.15.1",
     "numpy==2.5.3",
     "pandas==3.0.6",
@@ -23,4 +25,4 @@ dependencies = [
 dev = ["pytest==9.1.1"]
 
 [tool.uv]
-package = false  # projet de scripts : le code de src/ est importé via sys.path / pytest.ini, pas installé
+package = false  # script project: the code in src/ is imported through sys.path / pytest.ini, not installed

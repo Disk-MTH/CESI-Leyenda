@@ -65,6 +65,8 @@ from pathlib import Path
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")      # quieter TensorFlow logs
 ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 sys.path.insert(0, str(ROOT / "src"))                   # reusable code lives in src/tounum_cls
+import tounum_gpu
+tounum_gpu.setup()                                      # use the NVIDIA GPU if there is one (src/tounum_gpu.py)
 
 import numpy as np
 import pandas as pd
