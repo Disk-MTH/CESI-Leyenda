@@ -5,9 +5,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../notebooks"
 case "${1:-}" in
-  1) NB=deliverable1_photo_classification ;;
-  2) NB=deliverable2_denoising ;;
-  3) NB=deliverable3_captioning ;;
+  1) NB=livrable1_classification_binaire ;;
+  2) NB=livrable2_traitement_images ;;
+  3) NB=livrable3_captioning ;;
   *) echo "usage: bash scripts/run_notebook.sh <1|2|3> quick|full" >&2; exit 2 ;;
 esac
 case "${2:-}" in

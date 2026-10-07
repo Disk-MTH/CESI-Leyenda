@@ -144,8 +144,8 @@ def test_pipeline_end_to_end(tmp_path):
     assert list(out["file"]) == ["a.jpg", "broken.jpg", "c.JPG", "b.png"]
     ok = out[out["file"] != "broken.jpg"]
     assert ok["is_photo"].all() and ok["denoised"].all() and ok["caption"].map(lambda c: isinstance(c, str)).all()
-    assert out.loc[out["file"] == "broken.jpg", "caption"].iloc[0].startswith("[unreadable")
-    assert set(pipe.timings) == {"read + filter", "denoise", "encode", "caption"}
+    assert out.loc[out["file"] == "broken.jpg", "caption"].iloc[0].startswith("[illisible")
+    assert set(pipe.timings) == {"lecture + filtre", "débruitage", "encodage", "légende"}
 
 
 def test_plots():

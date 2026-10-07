@@ -68,11 +68,11 @@ def diagnose_fit(
     best_epoch = int(hist["epoch"].iloc[best_pos])
     drift = 0.0 if restored_best else float(last["val_loss"] - hist["val_loss"].min())
     if last["accuracy"] < low_acc:
-        verdict = "high bias (underfitting)"
+        verdict = "biais élevé (sous-apprentissage)"
     elif gap > gap_max or drift > drift_max:
-        verdict = "high variance (overfitting)"
+        verdict = "variance élevée (sur-apprentissage)"
     else:
-        verdict = "balanced (no clear bias or variance problem)"
+        verdict = "équilibré (pas de problème net de biais ou de variance)"
     return {
         "train_acc": float(last["accuracy"]), "val_acc": float(last["val_accuracy"]), "gap_acc": gap,
         "train_loss": float(last["loss"]), "val_loss": float(last["val_loss"]),
@@ -84,15 +84,15 @@ def diagnose_fit(
 def plot_history(hist: pd.DataFrame, title: str = ""):
     """Loss (left) and accuracy (right) curves per epoch, training vs validation."""
     fig, axes = plt.subplots(1, 2, figsize=(11, 3.8))
-    for ax, metric, label in zip(axes, ["loss", "accuracy"], ["Loss (binary cross-entropy)", "Accuracy"]):
-        ax.plot(hist["epoch"], hist[metric], marker="o", ms=3, label="training")
+    for ax, metric, label in zip(axes, ["loss", "accuracy"], ["Perte (entropie croisée binaire)", "Accuracy"]):
+        ax.plot(hist["epoch"], hist[metric], marker="o", ms=3, label="entraînement")
         ax.plot(hist["epoch"], hist[f"val_{metric}"], marker="o", ms=3, label="validation")
-        ax.set_xlabel("epoch")
+        ax.set_xlabel("époque")
         ax.set_ylabel(label)
         ax.grid(alpha=0.3)
         ax.legend()
-    axes[0].set_title(f"{title}: loss" if title else "Loss")
-    axes[1].set_title(f"{title}: accuracy" if title else "Accuracy")
+    axes[0].set_title(f"{title} : perte" if title else "Perte")
+    axes[1].set_title(f"{title} : accuracy" if title else "Accuracy")
     fig.tight_layout()
     return fig
 
@@ -105,8 +105,8 @@ def plot_confusion(y_true, y_prob, threshold: float = 0.5, title: str = ""):
     ax.imshow(cm, cmap="Blues")
     ax.set_xticks([0, 1], ["non-photo", "photo"])
     ax.set_yticks([0, 1], ["non-photo", "photo"])
-    ax.set_xlabel("predicted")
-    ax.set_ylabel("true")
+    ax.set_xlabel("classe prédite")
+    ax.set_ylabel("classe réelle")
     ax.set_title(title)
     for i in range(2):
         for j in range(2):
@@ -121,8 +121,8 @@ def plot_precision_recall(y_true, y_prob, title: str = ""):
     p, r, _ = precision_recall_curve(np.asarray(y_true).astype(int), y_prob)
     fig, ax = plt.subplots(figsize=(4.5, 3.6))
     ax.plot(r, p)
-    ax.set_xlabel("recall (share of photos found)")
-    ax.set_ylabel("precision (share of predicted photos that are photos)")
+    ax.set_xlabel("rappel (part des photos retrouvées)")
+    ax.set_ylabel("précision (part de vraies photos\nparmi les photos prédites)")
     ax.set_title(title)
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -183,6 +183,6 @@ def draw_architecture(model, title: str | None = None):
     ax.set_xlim(-0.2, 5.2)
     ax.set_ylim(-0.3, n * (box_h + gap))
     ax.axis("off")
-    ax.set_title(title or f"Architecture: {model.name} ({model.count_params():,} parameters)")
+    ax.set_title(title or f"Architecture : {model.name} ({model.count_params():,} paramètres)".replace(",", " "))
     fig.tight_layout()
     return fig

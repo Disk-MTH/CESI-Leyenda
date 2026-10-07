@@ -59,14 +59,14 @@ class CaptionPipeline:
         )
 
     def run(self, inputs, chunk: int = 64) -> pd.DataFrame:
-        """Run the workflow on a folder (or a list of image files).
+        """Lance le workflow sur un dossier (ou une liste de fichiers image).
 
-        Returns one row per file: file, path, p_photo, is_photo, noise_sigma, denoised, caption.
-        Non-photos get no caption; unreadable files are reported in the `caption` column.
+        Renvoie une ligne par fichier : file, path, p_photo, is_photo, noise_sigma, denoised, caption.
+        Les non-photos n'ont pas de légende ; les fichiers illisibles sont signalés dans la colonne `caption`.
         """
         paths = list_images(inputs) if isinstance(inputs, (str, Path)) else [Path(p) for p in inputs]
         rows, photo_feats, photo_rows = [], [], []
-        t = {"read + filter": 0.0, "denoise": 0.0, "encode": 0.0, "caption": 0.0}
+        t = {"lecture + filtre": 0.0, "débruitage": 0.0, "encodage": 0.0, "légende": 0.0}
         for start in range(0, len(paths), chunk):
             t0 = time.perf_counter()
             images, batch_rows = [], []
@@ -76,13 +76,13 @@ class CaptionPipeline:
                 try:
                     images.append(cls_data.read_rgb(p))
                     batch_rows.append(row)
-                except Exception as exc:          # corrupt or unsupported file: reported, not fatal
-                    row["caption"] = f"[unreadable: {type(exc).__name__}]"
+                except Exception as exc:          # fichier corrompu ou non pris en charge : signalé, pas bloquant
+                    row["caption"] = f"[illisible : {type(exc).__name__}]"
                 rows.append(row)
             if not images:
                 continue
             proba = cls_modeling.predict_proba(self.classifier, np.stack([cls_data.resize(im) for im in images]))
-            t["read + filter"] += time.perf_counter() - t0
+            t["lecture + filtre"] += time.perf_counter() - t0
             prepared = []
             for img, row, p in zip(images, batch_rows, proba):
                 row["p_photo"], row["is_photo"] = float(p), bool(p >= self.photo_threshold)
@@ -92,18 +92,18 @@ class CaptionPipeline:
                 row["noise_sigma"] = dn_data.estimate_noise(img)
                 if row["noise_sigma"] >= self.noise_threshold:
                     img, row["denoised"] = dn_modeling.denoise(self.denoiser, img), True
-                t["denoise"] += time.perf_counter() - t0
+                t["débruitage"] += time.perf_counter() - t0
                 prepared.append(features.prepare(img))
                 photo_rows.append(row)
             if prepared:
                 t0 = time.perf_counter()
                 photo_feats.append(features.encode(self.encoder, np.stack(prepared)))
-                t["encode"] += time.perf_counter() - t0
+                t["encodage"] += time.perf_counter() - t0
         if photo_rows:
             t0 = time.perf_counter()
             captions = cap_model.generate(self.captioner, np.concatenate(photo_feats), self.vocab, self.max_len)
             for row, caption in zip(photo_rows, captions):
                 row["caption"] = caption
-            t["caption"] += time.perf_counter() - t0
+            t["légende"] += time.perf_counter() - t0
         self.timings = t
         return pd.DataFrame(rows, columns=["file", "path", "p_photo", "is_photo", "noise_sigma", "denoised", "caption"])

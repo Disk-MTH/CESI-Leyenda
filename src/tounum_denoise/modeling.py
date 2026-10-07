@@ -38,16 +38,17 @@ def build_autoencoder(
     learning_rate: float = 1e-3,
     name: str | None = None,
 ) -> keras.Model:
-    """Convolutional autoencoder that maps a noisy RGB image to a clean one (float32 in [0, 1]).
+    """Autoencodeur convolutif qui transforme une image RGB bruitée en image propre (float32 dans [0, 1]).
 
-    Encoder: for each level, two Conv2D 3x3 + ReLU, then MaxPooling2D 2x2 (the last level is the bottleneck,
-    without pooling). Decoder: Conv2DTranspose 2x2 stride 2 (upsampling) then two Conv2D 3x3, mirroring the
-    encoder. Output: Conv2D 1x1 with 3 channels and a sigmoid.
-    `skips=True` concatenates each encoder level with the decoder level of the same resolution (U-Net style),
-    so fine details do not have to go through the low-resolution bottleneck.
-    `residual=True` makes the last Conv2D 1x1 predict the noise instead of the clean image; the output is the noisy
-    input minus that noise, clipped to [0, 1]. Leaving an image unchanged then only needs a prediction of zero.
-    The model is fully convolutional: it accepts any height and width that are multiples of 2**(levels-1).
+    Encodeur : à chaque niveau, deux Conv2D 3x3 + ReLU, puis MaxPooling2D 2x2 (le dernier niveau est le goulot
+    d'étranglement, sans pooling). Décodeur : Conv2DTranspose 2x2 stride 2 (suréchantillonnage) puis deux Conv2D
+    3x3, symétrique de l'encodeur. Sortie : Conv2D 1x1 à 3 canaux et sigmoïde.
+    `skips=True` concatène chaque niveau de l'encodeur avec le niveau du décodeur de même résolution (style
+    U-Net), pour que les détails fins n'aient pas à passer par le goulot basse résolution.
+    `residual=True` fait prédire le bruit à la dernière Conv2D 1x1 au lieu de l'image propre ; la sortie est
+    l'entrée bruitée moins ce bruit, ramenée dans [0, 1]. Laisser une image intacte demande alors seulement de
+    prédire zéro.
+    Le modèle est entièrement convolutif : il accepte toute hauteur et largeur multiples de 2**(niveaux-1).
     """
     name = name or ("residual_" if residual else "") + ("unet_autoencoder" if skips else "conv_autoencoder")
     inputs = keras.Input(shape=(None, None, 3), name="noisy")

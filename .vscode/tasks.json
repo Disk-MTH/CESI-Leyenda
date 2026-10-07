@@ -13,9 +13,9 @@
       "type": "pickString",
       "description": "Executed notebook to check",
       "options": [
-        "notebooks/deliverable1_photo_classification.ipynb",
-        "notebooks/deliverable2_denoising.ipynb",
-        "notebooks/deliverable3_captioning.ipynb"
+        "notebooks/livrable1_classification_binaire.ipynb",
+        "notebooks/livrable2_traitement_images.ipynb",
+        "notebooks/livrable3_captioning.ipynb"
       ]
     },
     {

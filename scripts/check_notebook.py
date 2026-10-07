@@ -1,6 +1,6 @@
 """Check that an executed deliverable notebook is complete: run without errors, sections and figures present.
 
-Usage: python scripts/check_notebook.py notebooks/deliverable1_photo_classification.ipynb [--partial]
+Usage: python scripts/check_notebook.py notebooks/livrable1_classification_binaire.ipynb [--partial]
 --partial: notebook still being built (or quick run) -> only checks that it ran without errors and prints counts.
 Exit code 0 if everything is fine, 1 otherwise.
 """
@@ -11,11 +11,11 @@ import nbformat
 
 # Per-deliverable requirements: (number of numbered sections, minimum figures, strings expected in the outputs)
 REQUIREMENTS = {
-    "deliverable1": (12, 14, ["Total params", "binary_crossentropy", "pairwise disjoint", "photo_classifier.keras"]),
-    "deliverable2": (11, 12, ["Total params", "PSNR", "SSIM", "denoiser.keras"]),
-    "deliverable3": (11, 10, ["Total params", "BLEU-4", "captioner.keras"]),
+    "livrable1": (12, 14, ["Total params", "binary_crossentropy", "disjoints deux à deux", "photo_classifier.keras"]),
+    "livrable2": (11, 12, ["Total params", "PSNR", "SSIM", "denoiser.keras"]),
+    "livrable3": (11, 10, ["Total params", "BLEU-4", "captioner.keras"]),
 }
-MIN_RESULTS = 4                # computed "Results." cells (real numbers, no hand-written figures)
+MIN_RESULTS = 4                # computed "Résultats." cells (real numbers, no hand-written figures)
 FORBIDDEN = ["\u2014"]   # em dash: kept out of the deliverables on purpose
 
 
@@ -30,7 +30,7 @@ def check(path: str, partial: bool = False) -> list[str]:
     )
     problems = []
     n_fig = sum(1 for o in outputs if "image/png" in o.get("data", {}))
-    n_results = text.count("**Results")
+    n_results = text.count("**Résultats")
     if any(c.execution_count is None for c in code):
         problems.append("some code cells were not executed")
     if any(o.output_type == "error" for o in outputs):
@@ -53,7 +53,7 @@ def check(path: str, partial: bool = False) -> list[str]:
     for s in FORBIDDEN:
         if s in markdown or s in text:
             problems.append(f"forbidden character {s!r} found")
-    if "QUICK mode: False" not in text:
+    if "mode QUICK : False" not in text:
         problems.append("the notebook was not run in full mode")
     return problems
 

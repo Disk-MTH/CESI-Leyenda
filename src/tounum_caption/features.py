@@ -14,11 +14,11 @@ from . import config
 
 
 def build_encoder(weights: str | None = "imagenet") -> keras.Model:
-    """Frozen InceptionV3 without its classification head.
+    """InceptionV3 gelé, sans sa tête de classification.
 
-    Input: uint8 RGB images (299, 299, 3); the [-1, 1] scaling InceptionV3 expects is done inside the model.
-    Output: (64, 2048) float32, the 8 x 8 grid of the last convolutional block flattened into 64 regions.
-    `weights=None` (tests) avoids downloading the ImageNet weights.
+    Entrée : images RGB uint8 (299, 299, 3) ; la mise à l'échelle [-1, 1] attendue par InceptionV3 est faite dans
+    le modèle. Sortie : (64, 2048) float32, la grille 8 x 8 du dernier bloc convolutif aplatie en 64 régions.
+    `weights=None` (tests) évite de télécharger les poids ImageNet.
     """
     size = config.FEATURE_IMG_SIZE
     base = keras.applications.InceptionV3(include_top=False, weights=weights, input_shape=(size, size, 3))

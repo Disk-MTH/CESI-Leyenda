@@ -1,5 +1,5 @@
 {
-  "model": "skip connections + residual output, fine-tuned",
+  "model": "connexions de saut + sortie résiduelle, après fine-tuning",
   "noise_threshold": 3.4879752727887166,
   "pad_multiple": 8,
   "test_files": [

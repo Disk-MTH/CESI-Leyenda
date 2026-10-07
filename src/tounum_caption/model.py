@@ -31,18 +31,18 @@ def build_captioner(
     learning_rate: float = 1e-3,
     name: str | None = None,
 ) -> keras.Model:
-    """Caption decoder trained with teacher forcing: predicts word t+1 from the image and words 1..t.
+    """Décodeur de légendes entraîné en teacher forcing : prédit le mot t+1 à partir de l'image et des mots 1..t.
 
-    Inputs: `image_features` (64, 2048), the InceptionV3 regions, and `tokens` (T,), the caption so far.
-    Output: logits (T, vocab_size) for the next word at each position.
-    CNN side: a trainable Dense layer projects each region to `embed_dim`; their mean, normalised, gives the initial
-    GRU state. Without the normalisation the tanh of the initial state can saturate early in training: every image
-    then gets the same state and the model without attention ignores the image.
-    RNN side: Embedding -> GRU. With `attention=True`, at every step the GRU output looks at the 64 projected
-    regions (additive attention) and the weighted sum (context) is concatenated to it before the output layers.
-    `attention=False` gives a Show and Tell style model where the image only enters through the initial state.
-    Padding (token 0) is not masked in the network: the GRU only reads from left to right, so padding after a
-    caption cannot change the predictions before it, and the loss ignores the padding positions.
+    Entrées : `image_features` (64, 2048), les régions InceptionV3, et `tokens` (T,), la légende déjà écrite.
+    Sortie : logits (T, vocab_size) du mot suivant à chaque position.
+    Partie CNN : une couche Dense entraînable projette chaque région en `embed_dim` ; leur moyenne, normalisée,
+    donne l'état initial du GRU. Sans la normalisation, la tanh de l'état initial peut saturer tôt dans
+    l'entraînement : toutes les images reçoivent alors le même état et le modèle sans attention ignore l'image.
+    Partie RNN : Embedding -> GRU. Avec `attention=True`, à chaque pas la sortie du GRU regarde les 64 régions
+    projetées (attention additive) et la somme pondérée (contexte) lui est concaténée avant les couches de sortie.
+    `attention=False` donne un modèle de type Show and Tell où l'image n'entre que par l'état initial.
+    Le padding (token 0) n'est pas masqué dans le réseau : le GRU lit de gauche à droite, donc le padding placé
+    après une légende ne peut pas changer les prédictions qui le précèdent, et la perte ignore ces positions.
     """
     name = name or ("captioner_attention" if attention else "captioner_no_attention")
     feats = keras.Input(shape=(config.N_REGIONS, config.FEATURE_DIM), name="image_features")

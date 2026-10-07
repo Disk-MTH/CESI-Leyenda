@@ -28,15 +28,15 @@ def build_cnn(
     bn_momentum: float = 0.9,
     name: str = "cnn_photo",
 ) -> keras.Model:
-    """Custom CNN for photo (1) vs non-photo (0).
+    """CNN conçu par nous pour photo (1) contre non-photo (0).
 
-    Input: uint8 images (img_size, img_size, 3); the /255 scaling is INSIDE the model.
-    One block = Conv2D 3x3 (same padding) -> BatchNormalization -> ReLU -> MaxPooling2D 2x2.
-    Head: GlobalAveragePooling2D -> Dense(dense_units, relu) -> [Dropout] -> Dense(1, sigmoid).
-    `augmentation=True` adds random transformations that are only active during training.
-    `l2` penalises the weights of the Conv2D layers and of the hidden Dense layer.
-    `bn_momentum=0.9` (instead of the default 0.99): the BatchNorm moving statistics settle within a few
-    dozen steps, which avoids an erratic validation curve during the first epochs.
+    Entrée : images uint8 (img_size, img_size, 3) ; la mise à l'échelle /255 est faite DANS le modèle.
+    Un bloc = Conv2D 3x3 (padding same) -> BatchNormalization -> ReLU -> MaxPooling2D 2x2.
+    Tête : GlobalAveragePooling2D -> Dense(dense_units, relu) -> [Dropout] -> Dense(1, sigmoid).
+    `augmentation=True` ajoute des transformations aléatoires, actives seulement pendant l'entraînement.
+    `l2` pénalise les poids des couches Conv2D et de la couche Dense cachée.
+    `bn_momentum=0.9` (au lieu de 0.99 par défaut) : les statistiques glissantes de BatchNorm se stabilisent en
+    quelques dizaines de pas, ce qui évite une courbe de validation erratique pendant les premières époques.
     """
     reg = regularizers.l2(l2) if l2 > 0 else None
     inputs = keras.Input(shape=(img_size, img_size, 3), name="image")

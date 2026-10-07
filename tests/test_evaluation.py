@@ -39,9 +39,9 @@ def test_diagnose_fit_three_regimes():
     under = evaluation.diagnose_fit(_hist([0.6, 0.7], [0.6, 0.7], [0.7, 0.6]))
     over = evaluation.diagnose_fit(_hist([0.9, 0.99], [0.9, 0.85], [0.3, 0.5]))
     good = evaluation.diagnose_fit(_hist([0.9, 0.97], [0.9, 0.96], [0.3, 0.2]))
-    assert "bias" in under["verdict"]
+    assert "biais" in under["verdict"]
     assert "variance" in over["verdict"] and over["best_epoch"] == 1 and over["gap_acc"] == pytest.approx(0.14)
-    assert "balanced" in good["verdict"] and good["best_epoch"] == 2
+    assert "équilibré" in good["verdict"] and good["best_epoch"] == 2
 
 
 def test_diagnose_fit_restored_best_uses_kept_epoch():
@@ -50,7 +50,7 @@ def test_diagnose_fit_restored_best_uses_kept_epoch():
     assert restored["kept_epoch"] == 1
     assert restored["gap_acc"] == pytest.approx(0.0)
     assert restored["val_loss_drift"] == 0.0
-    assert "balanced" in restored["verdict"]
+    assert "équilibré" in restored["verdict"]
     default = evaluation.diagnose_fit(hist)
     assert default["kept_epoch"] == 2
     assert "variance" in default["verdict"]
