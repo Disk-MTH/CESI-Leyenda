@@ -3,30 +3,29 @@
     <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#a9520f">Module 2 · Nettoyer : le bruit à la loupe</p>
     <h2 style="font-family:'Space Grotesk', Arial, sans-serif; font-size:64px; font-weight:700; line-height:1.1; letter-spacing:-1px; color:#141b2d">Seules les couleurs sont abîmées</h2>
   </div>
-  <img src="../assets/res_noisy.png" alt="Zoom sur la photo bruitée" style="position:absolute; top:300px; left:128px; width:360px; height:360px; border-radius:16px">
-  <p style="position:absolute; top:676px; left:128px; width:360px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#141b2d">Photo bruitée</p>
-  <img src="../assets/res_orig.png" alt="Même zoom sur l’original propre retrouvé" style="position:absolute; top:300px; left:512px; width:360px; height:360px; border-radius:16px">
-  <p style="position:absolute; top:676px; left:512px; width:360px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#141b2d">Original retrouvé</p>
-  <img src="../assets/res_diff.png" alt="Différence entre les deux, amplifiée six fois : un grain de couleurs vives" style="position:absolute; top:300px; left:896px; width:360px; height:360px; border:4px solid #d9772b; border-radius:16px">
-  <p style="position:absolute; top:676px; left:896px; width:360px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#a9520f">Différence (× 6) : du bruit de couleur</p>
-  <p style="position:absolute; top:296px; left:1336px; width:456px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; color:#141b2d">Force du bruit, par canal</p>
-  <div style="position:absolute; top:544px; left:1336px; width:130px; height:96px; display:flex; flex-direction:column; background:#8c93a6; border-radius:8px 8px 0 0">
-  </div>
-  <p style="position:absolute; top:502px; left:1326px; width:150px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; text-align:center; color:#141b2d">0,96</p>
-  <div style="position:absolute; top:405px; left:1499px; width:130px; height:235px; display:flex; flex-direction:column; background:#d9772b; border-radius:8px 8px 0 0">
-  </div>
-  <p style="position:absolute; top:363px; left:1489px; width:150px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; text-align:center; color:#a9520f">2,35</p>
-  <div style="position:absolute; top:443px; left:1662px; width:130px; height:197px; display:flex; flex-direction:column; background:#d9772b; border-radius:8px 8px 0 0">
-  </div>
-  <p style="position:absolute; top:401px; left:1652px; width:150px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; text-align:center; color:#a9520f">1,97</p>
-  <x-shape kind="line" style="position:absolute; top:640px; left:1336px; width:456px; height:3px; border:3px solid #4c5468"></x-shape>
-  <p style="position:absolute; top:652px; left:1326px; width:150px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.25; text-align:center; color:#141b2d">Luminosité</p>
-  <p style="position:absolute; top:652px; left:1489px; width:150px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.25; text-align:center; color:#141b2d">Couleur bleue</p>
-  <p style="position:absolute; top:652px; left:1652px; width:150px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.25; text-align:center; color:#141b2d">Couleur rouge</p>
-  <div style="position:absolute; top:764px; left:128px; width:1664px; display:flex; flex-direction:column; padding:24px 36px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
-    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:28px; line-height:1.4; color:#141b2d">La luminosité, qui porte les formes, est intacte : le bruit ne touche que les couleurs. <b>→ On fabrique un faux bruit identique</b> pour entraîner notre modèle sur des milliers de photos propres.</p>
+  <img src="../assets/res_noisy.png" alt="Zoom sur la photo bruitée" style="position:absolute; top:300px; left:128px; width:340px; height:340px; object-fit:cover; border-radius:16px">
+  <p style="position:absolute; top:656px; left:128px; width:340px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#141b2d">Photo bruitée</p>
+  <img src="../assets/res_orig.png" alt="Même zoom sur l’original propre retrouvé" style="position:absolute; top:300px; left:492px; width:340px; height:340px; object-fit:cover; border-radius:16px">
+  <p style="position:absolute; top:656px; left:492px; width:340px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#141b2d">Original retrouvé</p>
+  <img src="../assets/res_diff.png" alt="Différence entre les deux, amplifiée six fois : un grain de couleurs vives" style="position:absolute; top:300px; left:856px; width:340px; height:340px; object-fit:cover; border:4px solid #d9772b; border-radius:16px">
+  <p style="position:absolute; top:656px; left:856px; width:340px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#a9520f">Différence (× 6) : le bruit seul</p>
+  <p style="position:absolute; top:296px; left:1240px; width:552px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#141b2d">De combien un pixel bouge, en moyenne</p>
+  <p style="position:absolute; top:340px; left:1240px; width:552px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#6b7280">écart avec l’original, en niveaux de 0 à 255</p>
+  <div style="position:absolute; top:554px; left:1240px; width:150px; height:86px; background:#8c93a6; border-radius:8px 8px 0 0"></div>
+  <p style="position:absolute; top:512px; left:1230px; width:170px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; text-align:center; color:#141b2d">0,96</p>
+  <div style="position:absolute; top:428px; left:1441px; width:150px; height:212px; background:#d9772b; border-radius:8px 8px 0 0"></div>
+  <p style="position:absolute; top:386px; left:1431px; width:170px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; text-align:center; color:#a9520f">2,35</p>
+  <div style="position:absolute; top:463px; left:1642px; width:150px; height:177px; background:#d9772b; border-radius:8px 8px 0 0"></div>
+  <p style="position:absolute; top:421px; left:1632px; width:170px; font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; text-align:center; color:#a9520f">1,97</p>
+  <x-shape kind="line" style="position:absolute; top:640px; left:1240px; width:552px; height:3px; border:3px solid #4c5468"></x-shape>
+  <p style="position:absolute; top:652px; left:1220px; width:190px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.25; text-align:center; color:#141b2d">Luminosité</p>
+  <p style="position:absolute; top:652px; left:1421px; width:190px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.25; text-align:center; color:#141b2d">Couleur bleue</p>
+  <p style="position:absolute; top:652px; left:1622px; width:190px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.25; text-align:center; color:#141b2d">Couleur rouge</p>
+  <p style="position:absolute; top:692px; left:1240px; width:552px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; text-align:center; color:#6b7280">médiane sur les 148 photos</p>
+  <div style="position:absolute; top:744px; left:128px; width:1664px; display:flex; flex-direction:column; padding:22px 36px; background:#fbfaf6; border:1px solid #ddd7ca; border-left:8px solid #d9772b; border-radius:16px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:28px; line-height:1.4; color:#141b2d">La luminosité, qui porte les formes, bouge autant qu’avec un simple réenregistrement JPEG (0,92) : elle est intacte. Le bruit est dans les couleurs, 2 à 2,5 fois plus fort. <b>→ On sait l’imiter : on fabrique un faux bruit identique.</b></p>
   </div>
   <p style="position:absolute; bottom:64px; left:128px; width:900px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#6b7280">Leyenda · Nettoyer · Le bruit à la loupe</p>
   <p style="position:absolute; right:128px; bottom:64px; width:200px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; text-align:right; color:#141b2d">8 / 15</p>
-  <aside>JULIEN (1 min). Avec les originaux, on peut faire une soustraction : photo bruitée moins original, et il ne reste que le bruit. On l’amplifie six fois pour le voir : c’est un grain de toutes les couleurs. On a ensuite séparé l’image en deux informations : la luminosité, qui porte les formes et les détails, et la couleur. Résultat : sur la luminosité, le bruit est quasi nul, à peine plus qu’un simple réenregistrement en JPEG. Tout le bruit est dans les couleurs. C’est une info précieuse : on a pu fabriquer un faux bruit qui ressemble au vrai, et l’ajouter à des milliers de photos propres du premier livrable. Comme ça, on a autant d’exemples d’entraînement qu’on veut, alors qu’on n’avait que 148 vraies photos bruitées.</aside>
+  <aside>JULIEN (1 min). Avec les originaux, on peut faire une soustraction : photo bruitée moins original, et il ne reste que le bruit. On l’amplifie six fois pour le voir : c’est un grain de toutes les couleurs. Ensuite, on a séparé chaque pixel en deux informations : sa luminosité, qui porte les formes et les détails, et sa couleur. Le graphique répond à une question simple : de combien un pixel bouge-t-il en moyenne entre l’original et la photo bruitée, sur une échelle de 0 à 255 ? En luminosité, de moins d’un niveau : 0,96. C’est autant qu’un simple réenregistrement en JPEG, qui donne 0,92 : autrement dit, la luminosité n’est pas touchée. En couleur, de 2 à 2,4 niveaux : 2 à 2,5 fois plus. Tout le bruit est donc dans les couleurs. C’est précieux : on sait l’imiter. On fabrique un faux bruit identique, qu’on ajoute à des milliers de photos propres du premier livrable, et on obtient autant d’exemples d’entraînement qu’on veut, alors qu’on n’avait que 148 vraies photos bruitées.</aside>
 </section>
