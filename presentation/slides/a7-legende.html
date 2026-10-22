@@ -1,0 +1,65 @@
+<section id="a7-legende" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#6A45AE">Annexe A7 · Décrire : le modèle</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Le modèle de légende, pièce par pièce</h2>
+</div>
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:stretch">
+<div style="width:228px;display:flex;flex-direction:column;gap:4px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #6A45AE;border-radius:14px;padding:14px 18px">
+<p style="font-size:26px;font-weight:700">Photo</p>
+<p style="font-size:24px;line-height:1.3;color:#4C5468">mise en 299 × 299 pixels</p>
+</div>
+<div style="width:36px;display:flex;align-items:center"><x-connector style="width:36px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:228px;display:flex;flex-direction:column;gap:4px;background:#E2D9F2;border-top:6px solid #6A45AE;border-radius:14px;padding:14px 18px">
+<p style="font-size:26px;font-weight:700">L’œil</p>
+<p style="font-size:24px;line-height:1.3;color:#4C5468">InceptionV3, gelé : 21,8 M poids fixes</p>
+</div>
+<div style="width:36px;display:flex;align-items:center"><x-connector style="width:36px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:228px;display:flex;flex-direction:column;gap:4px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #6A45AE;border-radius:14px;padding:14px 18px">
+<p style="font-size:26px;font-weight:700">64 zones</p>
+<p style="font-size:24px;line-height:1.3;color:#4C5468">grille 8 × 8, 2 048 valeurs par zone</p>
+</div>
+<div style="width:36px;display:flex;align-items:center"><x-connector style="width:36px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:228px;display:flex;flex-direction:column;gap:4px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #6A45AE;border-radius:14px;padding:14px 18px">
+<p style="font-size:26px;font-weight:700">Projection</p>
+<p style="font-size:24px;line-height:1.3;color:#4C5468">Dense 256 par zone ; leur moyenne lance la plume</p>
+</div>
+<div style="width:36px;display:flex;align-items:center"><x-connector style="width:36px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:228px;display:flex;flex-direction:column;gap:4px;background:#E2D9F2;border-top:6px solid #6A45AE;border-radius:14px;padding:14px 18px">
+<p style="font-size:26px;font-weight:700">La plume</p>
+<p style="font-size:24px;line-height:1.3;color:#4C5468">GRU 512, qui lit le mot précédent</p>
+</div>
+<div style="width:36px;display:flex;align-items:center"><x-connector style="width:36px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:228px;display:flex;flex-direction:column;gap:4px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #6A45AE;border-radius:14px;padding:14px 18px">
+<p style="font-size:26px;font-weight:700">Mot suivant</p>
+<p style="font-size:24px;line-height:1.3;color:#4C5468">un score pour chacun des 5 000 mots</p>
+</div>
+</div>
+<p style="font-size:24px;line-height:1.4;color:#4C5468">Entraînés par nous : projection, plume et sortie, soit <b style="color:#141B2D">5,95 M paramètres</b>. L’œil ne bouge pas.</p>
+</div>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">À l’entraînement</h3>
+<p style="font-size:24px;font-weight:700;color:#6A45AE">teacher forcing</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">On lui donne toujours les vrais mots précédents ; elle apprend à deviner le suivant. Perte : −log p(bon mot).</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">À l’usage</h3>
+<p style="font-size:24px;font-weight:700;color:#6A45AE">décodage glouton</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Elle repart de ses propres mots, en gardant à chaque pas le plus probable, jusqu’à « endseq » ou 20 mots.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Le vocabulaire</h3>
+<p style="font-size:24px;font-weight:700;color:#6A45AE">5 000 mots</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Les plus fréquents des légendes COCO (98,7 % des mots). Les autres deviennent « inconnu », jamais écrit.</p>
+</div>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;gap:24px;align-items:center;background:#FBFAF6;border:1px solid #DDD7CA;border-left:8px solid #6A45AE;border-radius:16px;padding:18px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6A45AE;white-space:nowrap">À retenir</p>
+<p style="font-size:26px;line-height:1.35">Un œil déjà entraîné qu’on ne touche pas, une plume qu’on entraîne à prédire le mot suivant.</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Décrire</p>
+<p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">22 · Annexe A7</p>
+<aside>SCRIPT (1 min 15). On suit une photo de gauche à droite. Elle est mise en 299 par 299 pixels, la taille qu’attend InceptionV3. InceptionV3, c’est l’œil : un réseau déjà entraîné sur 1,2 million d’images ImageNet. On le garde gelé, on ne touche à aucun de ses 21,8 millions de poids. Il découpe la photo en une grille de 8 par 8, soit 64 zones, et décrit chacune par 2 048 nombres. Une couche Dense, qu’on entraîne, ramène chaque zone à 256 nombres, et la moyenne des zones donne à la plume son point de départ, un résumé de toute l’image. La plume est un GRU, un réseau récurrent : à chaque pas, il lit le mot précédent et produit un score pour chacun des 5 000 mots du vocabulaire ; le plus haut est le mot suivant. Il y a deux façons de l’utiliser. À l’entraînement, on lui donne toujours les vrais mots précédents, c’est le teacher forcing : il apprend à deviner le mot suivant. À l’usage, on n’a pas la vraie légende : il repart de ses propres mots, en prenant à chaque fois le plus probable. C’est le décodage glouton. Une erreur au début peut donc entraîner les suivantes. SI ON VOUS DEMANDE : GRU plutôt que LSTM ? Même rôle, avec des portes qui décident quoi garder des mots précédents, mais moins de paramètres. Pourquoi geler InceptionV3 ? Ses 64 zones sont calculées une seule fois et mises en cache (22 Go en flottants 16 bits pour 84 000 images) : chaque époque ne lit que ce cache, c’est rapide et ça tient en mémoire. Détails : embedding des mots en 256 valeurs, GRU de 512 unités, sortie Dense 512 + ReLU + dropout 0,3, gradient plafonné à 5 pour éviter les explosions des réseaux récurrents, LayerNorm avant l’état initial (sans elle, toutes les images finissaient par avoir le même départ). Légendes limitées à 22 tokens, avec « startseq » et « endseq » ; 99,4 % y tiennent. Entraînement sur 80 000 images COCO, une légende tirée au hasard par image et par époque. Le modèle retenu n’a pas d’attention (annexe A8).</aside>
+</section>

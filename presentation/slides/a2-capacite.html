@@ -1,0 +1,56 @@
+<section id="a2-capacite" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2F66B0">Annexe A2 · Trier : biais et variance</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Notre réseau est-il trop simple ou trop gros ?</h2>
+</div>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:10px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:24px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6B7280">Trop simple</p>
+<p style="font-size:28px;font-weight:700">485 paramètres</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:60px;font-weight:700;line-height:1;color:#4C5468">76,6 %</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">en validation · 79,5 % en entraînement</p>
+<hr style="border-top:2px solid #DDD7CA">
+<p style="font-size:24px;line-height:1.35">Mauvais même sur ses images d’entraînement : <b>biais</b>, il est trop rigide.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:10px;background:#FBFAF6;border:4px solid #2F66B0;border-radius:16px;padding:21px 25px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2F66B0">Référence</p>
+<p style="font-size:24px;font-weight:700;background:#2F66B0;color:#F4F1EA;border-radius:999px;padding:4px 18px">Retenu</p>
+</div>
+<p style="font-size:28px;font-weight:700">106 481 paramètres</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:60px;font-weight:700;line-height:1;color:#2F66B0">90,8 %</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">en validation · 92,9 % en entraînement</p>
+<hr style="border-top:2px solid #DDD7CA">
+<p style="font-size:24px;line-height:1.35">Écart faible, mais la perte de validation remonte en fin d’entraînement : léger <b>sur-apprentissage</b>.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:10px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:24px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6B7280">Trop complexe</p>
+<p style="font-size:28px;font-weight:700">455 905 paramètres</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:60px;font-weight:700;line-height:1;color:#4C5468">90,2 %</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">en validation · 93,2 % en entraînement</p>
+<hr style="border-top:2px solid #DDD7CA">
+<p style="font-size:24px;line-height:1.35">4,3 fois plus gros, et pas mieux : la taille n’est pas ce qui limite.</p>
+</div>
+<div style="width:420px;display:flex;flex-direction:column;gap:12px;background:#D5E1F2;border-radius:16px;padding:24px 28px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Et avec plus d’images ?</h3>
+<p style="font-size:24px;color:#4C5468">Écart entraînement − validation :</p>
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<p style="font-size:26px;font-weight:700">840 images</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;color:#4C5468">5,2 pts</p>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<p style="font-size:26px;font-weight:700">8 400 images</p>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;color:#2F66B0">2,2 pts</p>
+</div>
+<p style="font-size:24px;line-height:1.35">L’écart se referme avec plus de données : c’est le signe de la <b>variance</b>, pas du biais.</p>
+</div>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;gap:24px;align-items:center;background:#FBFAF6;border:1px solid #DDD7CA;border-left:8px solid #2F66B0;border-radius:16px;padding:18px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2F66B0;white-space:nowrap">À retenir</p>
+<p style="font-size:26px;line-height:1.35">La taille de référence suffit ; son petit sur-apprentissage se traite par régularisation (annexe A3).</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Trier</p>
+<p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">17 · Annexe A2</p>
+<aside>SCRIPT (1 min). Deux erreurs possibles. Le biais : le réseau est trop simple, il n’arrive même pas à bien apprendre ses images d’entraînement. La variance : il apprend par cœur, très bon à l’entraînement, moins bon sur des images nouvelles. Pour savoir où on en est, on a entraîné trois tailles de réseau, sur les mêmes images. Le petit, 485 paramètres, plafonne à 77 % en validation et 80 % en entraînement : c’est du biais. Notre réseau de référence fait 91 % en validation. Le gros, 4,3 fois plus de paramètres, fait 90 % : grossir n’apporte rien, donc la taille n’est pas notre limite. À droite, la courbe d’apprentissage : avec 840 images, l’écart entre entraînement et validation est de 5 points ; avec 8 400 images, il tombe à 2 points. Un écart qui se referme quand on ajoute des données, c’est de la variance : plus d’images, ou de la régularisation, aident. C’est ce qu’on fait en annexe A3. SI ON VOUS DEMANDE : pourquoi la référence est classée « sur-apprentissage » alors que l’écart n’est que de 2 points ? Notre diagnostic automatique a deux critères : un écart d’accuracy au-dessus de 5 points, OU une perte de validation qui remonte de plus de 0,05 au-dessus de son minimum. Ici c’est le second : la perte de validation finale est à 0,056 au-dessus de son meilleur point. C’est un cas limite. Le gros réseau, lui, passe juste sous ce seuil, d’où « équilibré » dans le notebook. La courbe d’apprentissage a un creux à 4 200 images (80,6 %) : c’est la variabilité d’une époque à l’autre, pas une tendance ; on a d’ailleurs moyenné les trois dernières époques.</aside>
+</section>

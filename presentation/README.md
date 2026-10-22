@@ -1,6 +1,6 @@
 # Présentation de soutenance
 
-Support de soutenance du projet Leyenda (TouNum) : 15 slides et 4 annexes, au format 16:9, pour environ 17 minutes
+Support de soutenance du projet Leyenda (TouNum) : 15 slides et 8 annexes, au format 16:9, pour environ 17 minutes
 de présentation et 2 minutes de démo.
 
 La présentation se joue depuis Claude :
@@ -33,7 +33,7 @@ Ce dossier en garde une copie versionnée : le texte de chaque slide, les notes 
 | 1 à 6 | Introduction, module 1 : trier | Matthis |
 | 7 à 10 | Module 2 : nettoyer | Julien |
 | 11 à 15 | Module 3 : décrire, workflow complet, démo | Mathieu |
-| 16 à 19 | Annexes, pour les questions du jury | selon la question |
+| 16 à 23 | Annexes A1 à A8, pour les questions du jury (fiche d’oral : `annexes.md`) | selon la question |
 
 ## Contenu du dossier
 
@@ -41,6 +41,7 @@ Ce dossier en garde une copie versionnée : le texte de chaque slide, les notes 
 |---|---|
 | `deck.json` | ordre des slides, sections, polices |
 | `slides/*.html` | une slide par fichier ; les notes orateur sont dans la balise `<aside>` à la fin de chaque fichier |
+| `annexes.md` | fiche d’oral des annexes : idée, script, détails, subtilités et questions probables du jury |
 | `assets/*.png` | images utilisées par les slides, extraites des notebooks exécutés |
 
 Les fichiers `slides/*.html` sont au format de l’éditeur de slides de Claude (balises `x-embed`, `x-connector`…) :

@@ -1,0 +1,70 @@
+<section id="a5-debruiteurs" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#A9520F">Annexe A5 · Nettoyer : les réseaux</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Trois débruiteurs : qu’est-ce qui change ?</h2>
+</div>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Autoencodeur simple</h3>
+<div style="position:relative;align-self:center;width:300px;height:165px">
+<div style="position:absolute;left:10px;top:40px;width:36px;height:110px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:72px;top:74px;width:36px;height:76px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:132px;top:106px;width:36px;height:44px;background:#A9520F;border-radius:6px"></div>
+<div style="position:absolute;left:192px;top:74px;width:36px;height:76px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:254px;top:40px;width:36px;height:110px;background:#E9B98F;border-radius:6px"></div>
+</div>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Tout passe par le goulot, au quart de la résolution : les détails fins se perdent.</p>
+<div style="display:flex;gap:16px">
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p style="font-size:24px;color:#6B7280">faux bruit</p><p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;line-height:1.1;color:#4C5468">30,0 dB</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p style="font-size:24px;color:#6B7280">vraies photos</p><p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;line-height:1.1;color:#B23A48">34,3 dB</p></div>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">+ raccourcis (U-Net)</h3>
+<div style="position:relative;align-self:center;width:300px;height:165px">
+<div style="position:absolute;left:10px;top:40px;width:36px;height:110px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:72px;top:74px;width:36px;height:76px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:132px;top:106px;width:36px;height:44px;background:#A9520F;border-radius:6px"></div>
+<div style="position:absolute;left:192px;top:74px;width:36px;height:76px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:254px;top:40px;width:36px;height:110px;background:#E9B98F;border-radius:6px"></div>
+<x-connector x1="28" y1="28" x2="272" y2="28" head="end" style="color:#A9520F;border-width:3px"></x-connector>
+<x-connector x1="90" y1="62" x2="210" y2="62" head="end" style="color:#A9520F;border-width:3px"></x-connector>
+</div>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Chaque niveau envoie ses détails au décodeur, qui n’a plus qu’à retirer le bruit.</p>
+<div style="display:flex;gap:16px">
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p style="font-size:24px;color:#6B7280">faux bruit</p><p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;line-height:1.1;color:#4C5468">34,5 dB</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p style="font-size:24px;color:#6B7280">vraies photos</p><p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;line-height:1.1;color:#A9520F">38,5 dB</p></div>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#F8E9DC;border:3px solid #D9772B;border-radius:16px;padding:20px 24px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">+ sortie résiduelle</h3>
+<p style="font-size:24px;font-weight:700;background:#A9520F;color:#F4F1EA;border-radius:999px;padding:4px 18px">Retenu</p>
+</div>
+<div style="position:relative;align-self:center;width:300px;height:165px">
+<div style="position:absolute;left:10px;top:40px;width:36px;height:110px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:72px;top:74px;width:36px;height:76px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:132px;top:106px;width:36px;height:44px;background:#A9520F;border-radius:6px"></div>
+<div style="position:absolute;left:192px;top:74px;width:36px;height:76px;background:#E9B98F;border-radius:6px"></div>
+<div style="position:absolute;left:254px;top:40px;width:36px;height:110px;background:#E9B98F;border-radius:6px"></div>
+<x-connector x1="28" y1="28" x2="272" y2="28" head="end" style="color:#A9520F;border-width:3px"></x-connector>
+<x-connector x1="90" y1="62" x2="210" y2="62" head="end" style="color:#A9520F;border-width:3px"></x-connector>
+<x-connector x1="10" y1="160" x2="290" y2="160" head="end" style="color:#141B2D;border-width:3px;border-style:dashed"></x-connector>
+</div>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Il prédit le bruit, qu’on soustrait de l’entrée (pointillés) : sur une zone propre, il prédit zéro.</p>
+<div style="display:flex;gap:16px">
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p style="font-size:24px;color:#6B7280">faux bruit</p><p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;line-height:1.1;color:#4C5468">34,9 dB</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p style="font-size:24px;color:#6B7280">vraies photos</p><p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:40px;font-weight:700;line-height:1.1;color:#A9520F">38,75 dB</p></div>
+</div>
+</div>
+</div>
+<p style="font-size:24px;line-height:1.4;color:#4C5468"><b style="color:#141B2D">Vraies photos</b> : 50 photos TouNum jamais vues, après réentraînement. Sans rien faire : <b style="color:#141B2D">38,1 dB</b>.</p>
+<div style="flex:1"></div>
+<div style="display:flex;gap:24px;align-items:center;background:#FBFAF6;border:1px solid #DDD7CA;border-left:8px solid #A9520F;border-radius:16px;padding:18px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#A9520F;white-space:nowrap">À retenir</p>
+<p style="font-size:26px;line-height:1.35">Seuls les réseaux à raccourcis battent « ne rien faire » ; le résiduel est le meilleur.</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Nettoyer</p>
+<p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">20 · Annexe A5</p>
+<aside>SCRIPT (1 min 15). Un autoencodeur prend une photo bruitée et rend une photo propre. Les barres montrent la taille de l’image dans le réseau : elle rétrécit dans l’encodeur, passe par un goulot, puis le décodeur la reconstruit. Version 1, l’autoencodeur simple : tout doit passer par le goulot, au quart de la résolution, donc les détails fins se perdent. Version 2, on ajoute des raccourcis, comme dans un U-Net : chaque niveau envoie directement ses détails au décodeur. Le réseau n’a plus à les mémoriser, il peut se concentrer sur le bruit : on gagne 4,5 dB sur le faux bruit. Version 3, celle qu’on garde : au lieu de redessiner l’image, le réseau prédit seulement le bruit, et on le soustrait de l’entrée. Sur une zone déjà propre, il lui suffit de prédire zéro. Ça compte beaucoup chez TouNum, parce que leur bruit est très léger. Le chiffre qui compte, c’est « vraies photos » : 50 photos TouNum jamais vues. Ne rien faire donne 38,1 dB. Le simple fait pire, 34,3 : il abîme les photos. Les deux autres font mieux, et le résiduel est le meilleur, 38,75. SI ON VOUS DEMANDE : le PSNR, c’est 10 × log10(1 / erreur quadratique moyenne), pixels entre 0 et 1 ; +3 dB veut dire erreur divisée par deux. Ces chiffres « vraies photos » sont après réentraînement (slide 10). Avant, les trois réseaux faisaient 32,5, 37,0 et 37,4 dB : tous sous 38,1, aucun n’améliorait les vraies photos. Les raccourcis n’ajoutent presque pas de paramètres : 467 000 contre 421 000. Détails techniques : 3 niveaux (32, 64, 128 filtres), convolutions 3 × 3 + ReLU, MaxPool pour réduire, Conv2DTranspose pour agrandir, perte MSE, Adam 10⁻³, patchs de 96 × 96, early stopping. Le réseau est entièrement convolutif : appris sur des petits patchs, il débruite une photo de n’importe quelle taille. Un filtre gaussien fait pire que rien (28,1 dB) parce qu’il floute toute l’image, luminosité comprise, alors que le bruit TouNum n’est que dans les couleurs.</aside>
+</section>

@@ -1,0 +1,63 @@
+<section id="a6-quand-debruiter" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#A9520F">Annexe A6 · Nettoyer : la règle du pipeline</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Quand faut-il débruiter une photo ?</h2>
+</div>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #A9520F;border-radius:16px;padding:20px 26px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#A9520F">Étape 1</p>
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Mesurer le bruit sans l’original</h3>
+<div style="align-self:center;display:grid;grid-template-columns:repeat(3, 72px);gap:6px">
+<p style="font-size:26px;font-weight:700;text-align:center;background:#F2DCC8;border-radius:8px;padding:6px 0">1</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#E6E0D3;border-radius:8px;padding:6px 0">−2</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#F2DCC8;border-radius:8px;padding:6px 0">1</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#E6E0D3;border-radius:8px;padding:6px 0">−2</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#D9772B;color:#F4F1EA;border-radius:8px;padding:6px 0">4</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#E6E0D3;border-radius:8px;padding:6px 0">−2</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#F2DCC8;border-radius:8px;padding:6px 0">1</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#E6E0D3;border-radius:8px;padding:6px 0">−2</p>
+<p style="font-size:26px;font-weight:700;text-align:center;background:#F2DCC8;border-radius:8px;padding:6px 0">1</p>
+</div>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Ce noyau (Immerkaer) annule les zones lisses : il reste surtout le bruit. Sa réponse moyenne donne σ, l’écart-type du bruit, moyenné sur R, V et B.</p>
+<p style="font-size:24px;line-height:1.35;color:#141B2D"><b>Limite</b> : l’herbe ou la fourrure passent aussi, σ est alors trop haut.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #A9520F;border-radius:16px;padding:20px 26px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#A9520F">Étape 2</p>
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Choisir le seuil sur la validation</h3>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Débruiter une photo propre ne peut que l’abîmer un peu : il faut un seuil.</p>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Sur 40 images, 20 bruitées et 20 propres, on essaie chaque seuil et on garde celui qui fait le plus baisser l’erreur moyenne.</p>
+<div style="flex:1"></div>
+<p style="font-family:'Space Grotesk', Arial, sans-serif;font-size:72px;font-weight:700;line-height:1;color:#A9520F">σ ≥ 3,5</p>
+<p style="font-size:24px;color:#4C5468">→ on débruite (échelle 0-255)</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FBFAF6;border:1px solid #DDD7CA;border-top:6px solid #A9520F;border-radius:16px;padding:20px 26px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#A9520F">Étape 3</p>
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Vérifier en test</h3>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Baisse moyenne de l’erreur, sur 50 bruitées + 50 propres :</p>
+<div style="display:flex;gap:12px;align-items:center">
+<p style="width:130px;font-size:24px">jamais</p>
+<div style="width:220px;display:flex;align-items:center"><div style="width:4px;height:30px;background:#A3A9B6;border-radius:2px"></div></div>
+<p style="width:80px;font-size:24px;font-weight:700;text-align:right">0</p>
+</div>
+<div style="display:flex;gap:12px;align-items:center">
+<p style="width:130px;font-size:24px;font-weight:700;color:#A9520F">règle 3,5</p>
+<div style="width:220px;display:flex;align-items:center"><div style="width:98px;height:30px;background:#D9772B;border-radius:6px"></div></div>
+<p style="width:80px;font-size:24px;font-weight:700;text-align:right;color:#A9520F">+0,21</p>
+</div>
+<div style="display:flex;gap:12px;align-items:center">
+<p style="width:130px;font-size:24px">toujours</p>
+<div style="width:220px;display:flex;align-items:center"><div style="width:220px;height:30px;background:#A3A9B6;border-radius:6px"></div></div>
+<p style="width:80px;font-size:24px;font-weight:700;text-align:right">+0,47</p>
+</div>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">L’estimation sépare mal les deux : la règle débruite 58 % des bruitées, mais aussi 64 % des propres.</p>
+</div>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;gap:24px;align-items:center;background:#FBFAF6;border:1px solid #DDD7CA;border-left:8px solid #A9520F;border-radius:16px;padding:18px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#A9520F;white-space:nowrap">À retenir</p>
+<p style="font-size:26px;line-height:1.35">Le seuil 3,5 vient des données, pas d’une théorie, et l’estimation à l’aveugle reste un signal faible.</p>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Nettoyer</p>
+<p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">21 · Annexe A6</p>
+<aside>SCRIPT (1 min 15). En production, on n’a pas l’original propre : il faut décider à l’aveugle si une photo est bruitée. Étape 1, on estime le bruit avec la méthode d’Immerkaer. Ce petit noyau 3 × 3 annule tout ce qui est lisse dans l’image : un aplat, un dégradé. Ce qui reste, c’est surtout le bruit. On fait la moyenne de cette réponse sur tous les pixels, ce qui donne σ, l’écart-type du bruit, et on fait la moyenne sur les trois canaux rouge, vert, bleu. Sa limite : les textures fines comme l’herbe passent aussi, donc σ est surestimé sur les images texturées. Étape 2, le seuil. Débruiter une photo propre ne peut pas l’améliorer, seulement l’abîmer un peu. On a donc pris 40 images de validation, moitié bruitées, moitié propres, essayé tous les seuils possibles, et gardé celui qui fait le plus baisser l’erreur en moyenne : 3,5. Étape 3, on vérifie sur le test, honnêtement : la règle fait mieux que ne jamais débruiter, mais débruiter toujours aurait fait encore mieux sur ce test. Pourquoi ? Parce qu’à ce niveau de bruit, l’estimation sépare mal les photos bruitées et propres. SI ON VOUS DEMANDE : 3,5 n’est ni une somme ni une valeur théorique. C’est un σ en niveaux de gris 0-255, moyenné sur R, V, B (pas sur Y, Cb, Cr). La formule : σ = √(π/2) × moyenne(|réponse au noyau|) / 6 ; le 6 normalise le noyau, √(π/2) convertit une moyenne de valeurs absolues en écart-type pour un bruit gaussien. Sur les 148 photos, l’estimation est faiblement liée au vrai bruit (corrélation 0,38), et sur les originaux propres elle donne une médiane de 4,5 contre 4,6 sur les bruités : la texture pèse plus que le bruit. Pourquoi garder la règle alors que « toujours » gagne en test ? On n’a pas le droit de choisir sur le test, et le coût est faible : sur les photos propres, le débruiteur ne fait perdre presque rien (49 dB de ressemblance), et pour les légendes ça ne change rien (BLEU identique). Le mélange 50/50 est une hypothèse : TouNum ne nous a pas donné la part de photos bruitées. S’ils savent quels lots viennent d’un scanner bruité, c’est le meilleur signal.</aside>
+</section>

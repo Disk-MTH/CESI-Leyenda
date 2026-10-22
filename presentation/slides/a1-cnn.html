@@ -1,37 +1,65 @@
-<section id="a1-cnn" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<section id="a1-cnn" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
 <div style="display:flex;flex-direction:column;gap:12px">
-<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2F66B0">Annexe A1 · Module 1</p>
-<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Notre CNN : architecture et capacité</h2>
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2F66B0">Annexe A1 · Trier : le réseau</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Comment notre CNN décide « photo » ?</h2>
 </div>
-<div style="display:flex;gap:40px">
-<div style="width:800px;display:flex;flex-direction:column;gap:20px">
-<table style="font-size:24px;color:#141B2D">
-<tr style="background:#DDD5C4"><th style="width:34%">Couche</th><th style="width:66%">Détail</th></tr>
-<tr><td>Entrée</td><td>image 128 × 128 × 3, pixels ramenés dans [0, 1]</td></tr>
-<tr><td>4 blocs convolutifs</td><td>Conv 3×3 (16, 32, 64, 128 filtres) → BatchNorm → ReLU → MaxPool 2×2</td></tr>
-<tr><td>Global Average Pooling</td><td>une valeur par carte de caractéristiques</td></tr>
-<tr><td>Dense 64 + ReLU</td><td>combine les 128 caractéristiques</td></tr>
-<tr><td>Dense 1 + sigmoïde</td><td>probabilité P(photo)</td></tr>
-</table>
-<p style="font-size:24px;line-height:1.4;color:#4C5468">106 481 paramètres · perte : entropie croisée binaire · Adam, pas de 10⁻³ · batchs de 64 · découpage 70 / 15 / 15, stratifié par type d’image</p>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;height:160px">
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:150px;height:150px;background:#D5E1F2;border:2px solid #2F66B0;border-radius:8px"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#2F66B0;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:112px;height:112px;background:#D5E1F2;border:2px solid #2F66B0;border-radius:8px;box-shadow:6px -6px 0 #BCCDE6, 12px -12px 0 #A7BEE0"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#2F66B0;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:84px;height:84px;background:#D5E1F2;border:2px solid #2F66B0;border-radius:8px;box-shadow:6px -6px 0 #BCCDE6, 12px -12px 0 #A7BEE0, 18px -18px 0 #92AED9"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#2F66B0;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:62px;height:62px;background:#D5E1F2;border:2px solid #2F66B0;border-radius:6px;box-shadow:5px -5px 0 #BCCDE6, 10px -10px 0 #A7BEE0, 15px -15px 0 #92AED9, 20px -20px 0 #7D9ED2"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#2F66B0;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:44px;height:44px;background:#D5E1F2;border:2px solid #2F66B0;border-radius:6px;box-shadow:5px -5px 0 #BCCDE6, 10px -10px 0 #A7BEE0, 15px -15px 0 #92AED9, 20px -20px 0 #7D9ED2, 25px -25px 0 #688ECB"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:28px;height:150px;background:#2F66B0;border-radius:6px"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:28px;height:84px;background:#2F66B0;border-radius:6px"></div></div>
+<div style="width:40px;display:flex;align-items:center"><x-connector style="width:40px;color:#4C5468;border-width:4px"></x-connector></div>
+<div style="width:170px;height:160px;display:flex;align-items:center;justify-content:center"><div style="width:84px;height:84px;background:#2F66B0;border-radius:50%"></div></div>
 </div>
-<div style="flex:1;display:flex;flex-direction:column;gap:16px">
-<p style="font-size:28px;font-weight:700">Biais / variance : trois tailles de réseau</p>
-<table style="font-size:24px;color:#141B2D">
-<tr style="background:#DDD5C4"><th style="width:22%">Modèle</th><th style="width:19%">Paramètres</th><th style="width:15%">Acc. entr.</th><th style="width:15%">Acc. val.</th><th style="width:29%">Diagnostic</th></tr>
-<tr><td>Trop simple</td><td>485</td><td>0,795</td><td>0,766</td><td>biais</td></tr>
-<tr><td>Référence</td><td>106 481</td><td>0,929</td><td>0,908</td><td>variance</td></tr>
-<tr><td>Trop complexe</td><td>455 905</td><td>0,932</td><td>0,902</td><td>équilibré</td></tr>
-</table>
-<p style="font-size:28px;font-weight:700">Courbe d’apprentissage (référence)</p>
-<table style="font-size:24px;color:#141B2D">
-<tr style="background:#DDD5C4"><th style="width:28%">Images</th><th style="width:18%">840</th><th style="width:18%">2 100</th><th style="width:18%">4 200</th><th style="width:18%">8 400</th></tr>
-<tr><td>Acc. val.</td><td>0,819</td><td>0,848</td><td>0,806</td><td>0,905</td></tr>
-<tr><td>Écart entr.-val.</td><td>0,052</td><td>0,060</td><td>0,115</td><td>0,022</td></tr>
-</table>
+<div style="display:flex;justify-content:space-between">
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>128 × 128</b><br>3 couleurs</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>64 × 64</b><br>16 cartes</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>32 × 32</b><br>32 cartes</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>16 × 16</b><br>64 cartes</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>8 × 8</b><br>128 cartes</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>Moyenne</b><br>128 nombres</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>Dense</b><br>64 neurones</p>
+<div style="width:40px"></div>
+<p style="width:170px;font-size:24px;line-height:1.3;text-align:center"><b>P(photo)</b><br>de 0 à 1</p>
 </div>
+<p style="font-size:24px;line-height:1.4;color:#4C5468"><b style="color:#2F66B0">Flèche bleue = un bloc</b> : filtres 3 × 3 appris → normalisation (BatchNorm) → ReLU → taille divisée par 2 (MaxPool). Puis une moyenne par carte, et la décision.</p>
+</div>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Ce qu’il apprend</h3>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Ses filtres ne sont pas fixés à la main : les premiers repèrent des bords, les suivants des textures, puis des formes.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Comment il apprend</h3>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">Perte : entropie croisée binaire, qui punit fort une erreur commise avec assurance. Optimiseur Adam, pas 10⁻³, paquets de 64 images.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;background:#FBFAF6;border:1px solid #DDD7CA;border-radius:16px;padding:22px 26px">
+<h3 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:30px;font-weight:700;line-height:1.15">Pourquoi si léger</h3>
+<p style="font-size:24px;line-height:1.35;color:#4C5468">106 481 paramètres : la moyenne par carte évite une énorme couche dense. Images : 70 % entraînement, 15 % validation, 15 % test.</p>
+</div>
+</div>
+<div style="flex:1"></div>
+<div style="display:flex;gap:24px;align-items:center;background:#FBFAF6;border:1px solid #DDD7CA;border-left:8px solid #2F66B0;border-radius:16px;padding:18px 28px">
+<p style="font-size:24px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2F66B0;white-space:nowrap">À retenir</p>
+<p style="font-size:26px;line-height:1.35">L’image rétrécit à chaque bloc, les cartes se multiplient, puis tout se résume en une probabilité.</p>
 </div>
 <p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Trier</p>
 <p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">16 · Annexe A1</p>
-<aside>Annexe pour les questions. Chiffres issus du notebook 1 (exécution complète sur GPU, graine 42). Multiplier les paramètres par 4,3 ne change presque rien (−0,006 en validation) : le réseau de référence a assez de capacité. Le modèle trop simple plafonne à 0,77 : c’est du biais. L’écart entraînement-validation se referme quand on a plus d’images : c’est le signe d’un régime de variance, où plus de données aident.</aside>
+<aside>SCRIPT (1 min). On lit le schéma de gauche à droite. À gauche, l’image, réduite en 128 par 128 pixels, avec ses trois couleurs. Chaque flèche bleue est un bloc : on passe des petits filtres 3 par 3 sur toute l’image, on normalise, on garde les valeurs positives (ReLU), puis on divise la taille par deux. Après quatre blocs, l’image ne fait plus que 8 par 8, mais on a 128 « cartes », chacune spécialisée dans un motif : un bord, une texture, une forme. On fait la moyenne de chaque carte : il reste 128 nombres, qui résument l’image. Une petite couche de 64 neurones les combine, et la sortie donne la probabilité que ce soit une photo. Pour apprendre, la perte est l’entropie croisée binaire : elle punit surtout les erreurs commises avec assurance, par exemple une peinture classée photo à 99 %. L’optimiseur est Adam. Le réseau n’a que 106 000 paramètres, parce que la moyenne par carte évite une énorme couche dense. SI ON VOUS DEMANDE : pourquoi la moyenne globale ? Une couche dense sur 8 × 8 × 128 valeurs demanderait 8 192 × 64 ≈ 524 000 poids rien que pour elle, contre 8 256 ici. Pourquoi BatchNorm ? Elle stabilise et accélère l’apprentissage. Le découpage 70/15/15 est stratifié par type d’image : chaque type a la même part dans les trois jeux.</aside>
 </section>

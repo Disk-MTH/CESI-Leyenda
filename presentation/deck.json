@@ -38,9 +38,13 @@
     "pipeline",
     "demo",
     "a1-cnn",
-    "a2-filtre",
-    "a3-debruit",
-    "a4-legende"
+    "a2-capacite",
+    "a3-regularisation",
+    "a4-seuil",
+    "a5-debruiteurs",
+    "a6-quand-debruiter",
+    "a7-legende",
+    "a8-bleu"
   ],
   "sections": {
     "s0": {
