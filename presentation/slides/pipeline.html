@@ -1,0 +1,57 @@
+<section id="pipeline" data-transition="fade" style="display:flex; flex-direction:column; gap:40px; padding:128px 128px 160px; background:#f4f1ea">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#6a45ae">Tout assemblé</p>
+    <h2 style="font-family:'Space Grotesk', Arial, sans-serif; font-size:64px; font-weight:700; line-height:1.1; letter-spacing:-1px; color:#141b2d">Un dossier en entrée, un tableau en sortie</h2>
+  </div>
+  <div data-build-in="rise 1 auto" style="position:absolute; top:300px; left:128px; width:260px; height:160px; display:flex; flex-direction:column; gap:6px; justify-content:center; padding:24px; background:#141b2d; border-radius:16px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; color:#f4f1ea">Dossier d’images</p>
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#b9c0d0">jpg, png, en vrac</p>
+  </div>
+  <x-connector x1="396" y1="380" x2="441" y2="380" style="color:#4c5468; border-width:4px"></x-connector>
+  <div data-build-in="rise 2 auto" style="position:absolute; top:300px; left:449px; width:300px; height:160px; display:flex; flex-direction:column; gap:6px; justify-content:center; padding:22px 24px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; color:#2f66b0">1 · Trier</p>
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#4c5468">photo si probabilité ≥ 50 %</p>
+  </div>
+  <x-connector x1="757" y1="380" x2="802" y2="380" style="color:#4c5468; border-width:4px"></x-connector>
+  <div data-build-in="rise 3 auto" style="position:absolute; top:300px; left:810px; width:300px; height:160px; display:flex; flex-direction:column; gap:6px; justify-content:center; padding:22px 24px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; color:#a9520f">2 · Nettoyer</p>
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#4c5468">seulement si bruit ≥ 3,5</p>
+  </div>
+  <x-connector x1="1118" y1="380" x2="1163" y2="380" style="color:#4c5468; border-width:4px"></x-connector>
+  <div data-build-in="rise 4 auto" style="position:absolute; top:300px; left:1171px; width:300px; height:160px; display:flex; flex-direction:column; gap:6px; justify-content:center; padding:22px 24px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:28px; font-weight:700; color:#6a45ae">3 · Décrire</p>
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#4c5468">l’œil + la plume</p>
+  </div>
+  <x-connector x1="1479" y1="380" x2="1524" y2="380" style="color:#4c5468; border-width:4px"></x-connector>
+  <div data-build-in="rise 5 auto" style="position:absolute; top:300px; left:1532px; width:260px; height:160px; display:flex; flex-direction:column; gap:6px; justify-content:center; padding:24px; background:#141b2d; border-radius:16px">
+    <p style="font-family:'JetBrains Mono', 'Courier New', monospace; font-size:26px; font-weight:700; color:#bba2f2">captions.csv</p>
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#b9c0d0">une ligne par image</p>
+  </div>
+  <p style="position:absolute; top:492px; left:128px; width:1664px; padding:14px 24px; font-family:'JetBrains Mono', 'Courier New', monospace; font-size:24px; line-height:1.3; color:#e8ecf4; background:#1f2a44; border-radius:12px">$ uv run python scripts/caption_folder.py mon_dossier/ --out captions.csv</p>
+  <div style="position:absolute; top:584px; left:128px; width:1160px; display:flex; flex-direction:column">
+    <table style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#141b2d">
+      <tr style="background:#e6e0d3"><th style="width:36%">fichier</th><th style="width:14%">photo ?</th><th style="width:13%">nettoyée</th><th style="width:37%">légende</th></tr>
+      <tr><td>painting_09787.jpg</td><td>non (0,00)</td><td>–</td><td>–</td></tr>
+      <tr><td>photo_tounum_noisy_095.jpg</td><td>oui (0,98)</td><td>oui</td><td>a zebra is standing in the dirt near a fence</td></tr>
+      <tr><td>photo_tounum_04834.jpg</td><td>oui (0,93)</td><td>non</td><td>a man is waiting for a bus in a crowd</td></tr>
+      <tr style="background:#f6e3d3"><td>photo_tounum_noisy_014.jpg</td><td>non (0,43)</td><td>–</td><td>l’erreur : photo rejetée</td></tr>
+    </table>
+  </div>
+  <div style="position:absolute; top:584px; left:1336px; width:456px; display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; flex-direction:row; gap:20px; align-items:baseline">
+      <p style="width:230px; font-family:'Space Grotesk', Arial, sans-serif; font-size:56px; font-weight:700; line-height:1.1; color:#141b2d">18</p>
+      <p style="flex:1; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#4c5468">fichiers mélangés</p>
+    </div>
+    <div style="display:flex; flex-direction:row; gap:20px; align-items:baseline">
+      <p style="width:230px; font-family:'Space Grotesk', Arial, sans-serif; font-size:56px; font-weight:700; line-height:1.1; color:#6a45ae">17 / 18</p>
+      <p style="flex:1; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#4c5468">bonnes décisions</p>
+    </div>
+    <div style="display:flex; flex-direction:row; gap:20px; align-items:baseline">
+      <p style="width:230px; font-family:'Space Grotesk', Arial, sans-serif; font-size:56px; font-weight:700; line-height:1.1; color:#141b2d">0,36 s</p>
+      <p style="flex:1; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#4c5468">par image</p>
+    </div>
+  </div>
+  <p style="position:absolute; bottom:64px; left:128px; width:900px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#6b7280">Leyenda · Workflow complet</p>
+  <p style="position:absolute; right:128px; bottom:64px; width:200px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; text-align:right; color:#141b2d">14 / 15</p>
+  <aside>MATHIEU (45 s). Les trois modules sont assemblés en un seul outil. Une seule commande, ou la dernière cellule du notebook 3 : on lui donne un dossier, et il produit un tableau avec une ligne par image. Pour chaque fichier, on voit si c’est une photo, si elle a été nettoyée, et sa légende. On l’a testé sur un dossier de 18 images mélangées, qui ressemble à une archive de TouNum : 17 décisions justes sur 18. La seule erreur, en orange, c’est une photo bruitée de TouNum rejetée de peu, à 43 % au lieu de 50. Le tout prend environ un tiers de seconde par image. Et maintenant, place à la démo en direct.</aside>
+</section>

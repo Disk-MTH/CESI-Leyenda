@@ -1,0 +1,37 @@
+<section id="a1-cnn" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2F66B0">Annexe A1 · Module 1</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Notre CNN : architecture et capacité</h2>
+</div>
+<div style="display:flex;gap:40px">
+<div style="width:800px;display:flex;flex-direction:column;gap:20px">
+<table style="font-size:24px;color:#141B2D">
+<tr style="background:#DDD5C4"><th style="width:34%">Couche</th><th style="width:66%">Détail</th></tr>
+<tr><td>Entrée</td><td>image 128 × 128 × 3, pixels ramenés dans [0, 1]</td></tr>
+<tr><td>4 blocs convolutifs</td><td>Conv 3×3 (16, 32, 64, 128 filtres) → BatchNorm → ReLU → MaxPool 2×2</td></tr>
+<tr><td>Global Average Pooling</td><td>une valeur par carte de caractéristiques</td></tr>
+<tr><td>Dense 64 + ReLU</td><td>combine les 128 caractéristiques</td></tr>
+<tr><td>Dense 1 + sigmoïde</td><td>probabilité P(photo)</td></tr>
+</table>
+<p style="font-size:24px;line-height:1.4;color:#4C5468">106 481 paramètres · perte : entropie croisée binaire · Adam, pas de 10⁻³ · batchs de 64 · découpage 70 / 15 / 15, stratifié par type d’image</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px">
+<p style="font-size:28px;font-weight:700">Biais / variance : trois tailles de réseau</p>
+<table style="font-size:24px;color:#141B2D">
+<tr style="background:#DDD5C4"><th style="width:22%">Modèle</th><th style="width:19%">Paramètres</th><th style="width:15%">Acc. entr.</th><th style="width:15%">Acc. val.</th><th style="width:29%">Diagnostic</th></tr>
+<tr><td>Trop simple</td><td>485</td><td>0,795</td><td>0,766</td><td>biais</td></tr>
+<tr><td>Référence</td><td>106 481</td><td>0,929</td><td>0,908</td><td>variance</td></tr>
+<tr><td>Trop complexe</td><td>455 905</td><td>0,932</td><td>0,902</td><td>équilibré</td></tr>
+</table>
+<p style="font-size:28px;font-weight:700">Courbe d’apprentissage (référence)</p>
+<table style="font-size:24px;color:#141B2D">
+<tr style="background:#DDD5C4"><th style="width:28%">Images</th><th style="width:18%">840</th><th style="width:18%">2 100</th><th style="width:18%">4 200</th><th style="width:18%">8 400</th></tr>
+<tr><td>Acc. val.</td><td>0,819</td><td>0,848</td><td>0,806</td><td>0,905</td></tr>
+<tr><td>Écart entr.-val.</td><td>0,052</td><td>0,060</td><td>0,115</td><td>0,022</td></tr>
+</table>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Trier</p>
+<p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">16 · Annexe A1</p>
+<aside>Annexe pour les questions. Chiffres issus du notebook 1 (exécution complète sur GPU, graine 42). Multiplier les paramètres par 4,3 ne change presque rien (−0,006 en validation) : le réseau de référence a assez de capacité. Le modèle trop simple plafonne à 0,77 : c’est du biais. L’écart entraînement-validation se referme quand on a plus d’images : c’est le signe d’un régime de variance, où plus de données aident.</aside>
+</section>

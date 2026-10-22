@@ -1,0 +1,38 @@
+<section id="a2-filtre" data-transition="fade" style="background:#ECE7DB;color:#141B2D;font-family:'DM Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#2F66B0">Annexe A2 · Module 1</p>
+<h2 style="font-family:'Space Grotesk', Arial, sans-serif;font-size:64px;font-weight:700;line-height:1.1;letter-spacing:-1px;color:#141B2D">Régularisation, évaluation et seuil</h2>
+</div>
+<div style="display:flex;gap:40px">
+<div style="width:780px;display:flex;flex-direction:column;gap:16px">
+<p style="font-size:28px;font-weight:700">Une technique à la fois (validation)</p>
+<table style="font-size:24px;color:#141B2D">
+<tr style="background:#DDD5C4"><th style="width:40%">Configuration</th><th style="width:18%">Acc. val.</th><th style="width:18%">Perte val.</th><th style="width:24%">Diagnostic</th></tr>
+<tr><td>Référence</td><td>0,908</td><td>0,248</td><td>variance</td></tr>
+<tr><td>+ augmentation</td><td>0,896</td><td>0,232</td><td>équilibré</td></tr>
+<tr><td>+ dropout 0,4</td><td>0,906</td><td>0,229</td><td>équilibré</td></tr>
+<tr><td>+ L2 10⁻⁴</td><td>0,884</td><td>0,294</td><td>variance</td></tr>
+<tr style="background:#D5E1F2"><td>+ early stopping (retenu)</td><td>0,920</td><td>0,209</td><td>équilibré</td></tr>
+</table>
+<p style="font-size:24px;line-height:1.4;color:#4C5468">Choix fait sur la validation uniquement ; les jeux de test ne servent qu’à la mesure finale.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px">
+<p style="font-size:28px;font-weight:700">Évaluation finale</p>
+<table style="font-size:24px;color:#141B2D">
+<tr style="background:#DDD5C4"><th style="width:46%">Modèle · jeu de test</th><th style="width:18%">Accuracy</th><th style="width:14%">F1</th><th style="width:22%">ROC-AUC</th></tr>
+<tr><td>CNN · équilibré</td><td>0,911</td><td>0,914</td><td>0,967</td></tr>
+<tr><td>CNN · réaliste</td><td>0,923</td><td>0,843</td><td>0,980</td></tr>
+<tr style="background:#D5E1F2"><td>MobileNetV2 · réaliste</td><td>0,971</td><td>0,936</td><td>0,994</td></tr>
+</table>
+<p style="font-size:28px;font-weight:700">Effet du seuil (CNN, test réaliste)</p>
+<table style="font-size:24px;color:#141B2D">
+<tr style="background:#DDD5C4"><th style="width:25%">Seuil</th><th style="width:15%">0,1</th><th style="width:15%">0,3</th><th style="width:15%">0,5</th><th style="width:15%">0,7</th><th style="width:15%">0,9</th></tr>
+<tr><td>Précision</td><td>0,574</td><td>0,680</td><td>0,756</td><td>0,818</td><td>0,882</td></tr>
+<tr><td>Rappel</td><td>0,992</td><td>0,973</td><td>0,953</td><td>0,911</td><td>0,801</td></tr>
+</table>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:900px;font-size:24px;color:#6B7280">Leyenda · Annexes · Trier</p>
+<p style="position:absolute;right:128px;bottom:64px;width:300px;font-size:24px;font-weight:700;text-align:right;color:#141B2D">17 · Annexe A2</p>
+<aside>Annexe pour les questions. Test équilibré : 1 800 images (50 % de photos). Test réaliste : 4 605 images (22 % de photos), jamais utilisées pour entraîner ni choisir. La précision baisse sur le jeu réaliste parce que les photos y sont minoritaires : à taux de fausses alarmes égal, elles pèsent plus. Le seuil est une décision métier : précision (moins de peintures légendées) contre rappel (moins de photos perdues). Les configurations avec early stopping avaient 25 époques au lieu de 20.</aside>
+</section>

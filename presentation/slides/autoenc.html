@@ -1,0 +1,59 @@
+<section id="autoenc" data-transition="fade" style="display:flex; flex-direction:column; gap:40px; padding:128px 128px 160px; background:#f4f1ea">
+  <div style="display:flex; flex-direction:column; gap:12px">
+    <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#a9520f">Module 2 · Nettoyer : la méthode</p>
+    <h2 style="font-family:'Space Grotesk', Arial, sans-serif; font-size:64px; font-weight:700; line-height:1.1; letter-spacing:-1px; color:#141b2d">Notre méthode : un autoencodeur</h2>
+  </div>
+  <div style="position:absolute; top:300px; left:128px; width:1120px; height:610px; display:flex; flex-direction:column">
+    <svg xmlns="http://www.w3.org/2000/svg" aria-label="Flèche en pointillés qui relie l’étape résumer à l’étape redessiner : les raccourcis" viewBox="0 0 1120 120" style="position:absolute; top:0; left:0; width:1120px; height:120px"><defs><marker id="m" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="#A9520F" stroke="none"/></marker></defs><path d="M377 76 Q 558 20 731 72" fill="none" stroke="#A9520F" stroke-width="4" stroke-dasharray="12 9" marker-end="url(#m)"/></svg>
+    <p style="position:absolute; top:0; left:222px; width:672px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; text-align:center; color:#a9520f">raccourcis : les détails fins sautent le résumé</p>
+    <img src="../assets/dn_noisy.png" alt="Entrée : photo bruitée" style="position:absolute; top:110px; left:0; width:170px; height:170px; border-radius:12px">
+    <p style="position:absolute; top:288px; left:0; width:170px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; text-align:center; color:#4c5468">photo bruitée</p>
+    <x-connector x1="178" y1="195" x2="214" y2="195" style="color:#4c5468; border-width:4px"></x-connector>
+    <div style="position:absolute; top:80px; left:222px; width:310px; height:230px; display:flex; flex-direction:column; gap:8px; padding:18px 22px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
+      <svg xmlns="http://www.w3.org/2000/svg" aria-label="Entonnoir qui se rétrécit" viewBox="0 0 120 44" style="width:120px; height:44px"><path d="M2 2 L118 14 L118 30 L2 42 Z" fill="#E9A169"/></svg>
+      <h3 style="font-family:'Space Grotesk', Arial, sans-serif; font-size:30px; font-weight:700; line-height:1.15; color:#141b2d">① Résumer</h3>
+      <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.3; color:#4c5468">il compresse l’image : l’essentiel passe, le bruit non</p>
+    </div>
+    <x-connector x1="540" y1="195" x2="576" y2="195" style="color:#4c5468; border-width:4px"></x-connector>
+    <div style="position:absolute; top:80px; left:584px; width:310px; height:230px; display:flex; flex-direction:column; gap:8px; padding:18px 22px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
+      <svg xmlns="http://www.w3.org/2000/svg" aria-label="Entonnoir qui s’élargit" viewBox="0 0 120 44" style="width:120px; height:44px"><path d="M2 14 L118 2 L118 42 L2 30 Z" fill="#E9A169"/></svg>
+      <h3 style="font-family:'Space Grotesk', Arial, sans-serif; font-size:30px; font-weight:700; line-height:1.15; color:#141b2d">② Redessiner</h3>
+      <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.3; color:#4c5468">il reconstruit l’image en grand à partir du résumé</p>
+    </div>
+    <x-connector x1="902" y1="195" x2="938" y2="195" style="color:#4c5468; border-width:4px"></x-connector>
+    <img src="../assets/dn_ae.png" alt="Sortie : photo nettoyée" style="position:absolute; top:110px; left:946px; width:170px; height:170px; border-radius:12px">
+    <p style="position:absolute; top:288px; left:946px; width:170px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; text-align:center; color:#4c5468">photo propre</p>
+    <div style="position:absolute; top:350px; left:0; width:1120px; height:260px; display:flex; flex-direction:row; gap:18px; align-items:center; padding:20px 24px; background:#fbfaf6; border:1px solid #ddd7ca; border-radius:16px">
+      <div style="width:300px; display:flex; flex-direction:column; gap:8px">
+        <h3 style="font-family:'Space Grotesk', Arial, sans-serif; font-size:30px; font-weight:700; line-height:1.15; color:#141b2d">Notre astuce</h3>
+        <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; line-height:1.3; color:#4c5468">il ne redessine pas tout : il devine juste le bruit, qu’on retire. Zone déjà propre ? Rien à retirer.</p>
+      </div>
+      <div style="width:170px; display:flex; flex-direction:column; gap:6px">
+        <img src="../assets/res_noisy.png" alt="Photo bruitée" style="width:170px; height:170px; border-radius:10px">
+        <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; text-align:center; color:#141b2d">bruitée</p>
+      </div>
+      <p style="font-family:'Space Grotesk', Arial, sans-serif; font-size:64px; font-weight:700; color:#a9520f">−</p>
+      <div style="width:170px; display:flex; flex-direction:column; gap:6px">
+        <img src="../assets/res_diff.png" alt="Le bruit seul, grossi six fois" style="width:170px; height:170px; border-radius:10px">
+        <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; text-align:center; color:#141b2d">bruit (grossi)</p>
+      </div>
+      <p style="font-family:'Space Grotesk', Arial, sans-serif; font-size:64px; font-weight:700; color:#a9520f">=</p>
+      <div style="width:170px; display:flex; flex-direction:column; gap:6px">
+        <img src="../assets/res_orig.png" alt="Photo propre" style="width:170px; height:170px; border-radius:10px">
+        <p style="font-family:'DM Sans', Arial, sans-serif; font-size:24px; text-align:center; color:#141b2d">propre</p>
+      </div>
+    </div>
+  </div>
+  <p style="position:absolute; top:300px; left:1288px; width:504px; font-family:'DM Sans', Arial, sans-serif; font-size:26px; font-weight:700; color:#141b2d">Sur une vraie photo de TouNum :</p>
+  <img src="../assets/dn_noisy_b.png" alt="Photo bruitée, détail d’arbres enneigés" style="position:absolute; top:350px; left:1288px; width:240px; height:220px; border-radius:12px">
+  <p style="position:absolute; top:576px; left:1288px; width:240px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; color:#141b2d">Bruitée</p>
+  <img src="../assets/dn_gauss_b.png" alt="Même détail après un filtre classique : tout est flou" data-build-in="fade 1" style="position:absolute; top:350px; left:1552px; width:240px; height:220px; border-radius:12px">
+  <p data-build-in="fade 1 auto" style="position:absolute; top:576px; left:1552px; width:259.64px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; color:#141b2d">Filtre classique : flou</p>
+  <img src="../assets/dn_ae_b.png" alt="Même détail après notre autoencodeur : net" data-build-in="pop 2" style="position:absolute; top:640px; left:1288px; width:240px; height:220px; border:4px solid #d9772b; border-radius:12px">
+  <p data-build-in="fade 2 auto" style="position:absolute; top:866px; left:1288px; width:240px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; color:#a9520f">Autoencodeur : net</p>
+  <img src="../assets/dn_orig_b.png" alt="Original propre du même détail" data-build-in="fade 3" style="position:absolute; top:640px; left:1552px; width:240px; height:220px; border-radius:12px">
+  <p data-build-in="fade 3 auto" style="position:absolute; top:866px; left:1552px; width:240px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; color:#141b2d">Original</p>
+  <p style="position:absolute; bottom:64px; left:128px; width:900px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; color:#6b7280">Leyenda · Nettoyer · La méthode</p>
+  <p style="position:absolute; right:128px; bottom:64px; width:200px; font-family:'DM Sans', Arial, sans-serif; font-size:24px; font-weight:700; text-align:right; color:#141b2d">9 / 15</p>
+  <aside>JULIEN (1 min 15). Notre outil, c’est un autoencodeur. Il travaille en deux temps. Un : résumer. Il compresse l’image en une version beaucoup plus petite ; il n’a pas la place de tout garder, alors il garde l’essentiel, les formes et les couleurs, et le bruit ne passe pas. Deux : redessiner. Il reconstruit l’image en grand à partir de ce résumé. Le problème d’un résumé, c’est qu’on perd aussi les détails fins : d’où les raccourcis en pointillés, qui transmettent directement les contours et les textures à l’étape « redessiner ». Et notre astuce, en bas : plutôt que de tout redessiner, le réseau devine seulement le bruit, et on le soustrait de la photo. Sur une zone déjà propre, il n’a rien à retirer, donc il ne l’abîme pas. À droite, le résultat sur une vraie photo de TouNum : le filtre classique (clic) efface le bruit mais floute tout ; notre autoencodeur (clic) reste net, très proche de l’original (clic). En chiffres, sur un bruit fort : le filtre divise l’erreur par 2, notre autoencodeur par 20.</aside>
+</section>

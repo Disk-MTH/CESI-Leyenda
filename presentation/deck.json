@@ -1,0 +1,72 @@
+{
+  "v": 4,
+  "attachments": {},
+  "createdOnFiles": {
+    "at": "2026-10-21T08:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "faces": {
+    "dm-sans": {
+      "family": "DM Sans",
+      "href": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400..700&display=swap"
+    },
+    "jetbrains-mono": {
+      "family": "JetBrains Mono",
+      "href": "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400..700&display=swap"
+    },
+    "space-grotesk": {
+      "family": "Space Grotesk",
+      "href": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400..700&display=swap"
+    }
+  },
+  "lists": "css",
+  "order": [
+    "cover",
+    "besoin",
+    "solution",
+    "trier",
+    "cnn",
+    "choix",
+    "bruit",
+    "loupe",
+    "autoenc",
+    "piege",
+    "coco",
+    "oeilplume",
+    "resultats",
+    "pipeline",
+    "demo",
+    "a1-cnn",
+    "a2-filtre",
+    "a3-debruit",
+    "a4-legende"
+  ],
+  "sections": {
+    "s0": {
+      "description": "Introduction : le besoin de TouNum, notre solution en trois modules (Matthis)",
+      "start": "cover"
+    },
+    "s1": {
+      "description": "Module 1, trier : garder les photos, écarter le reste (Matthis)",
+      "start": "trier"
+    },
+    "s2": {
+      "description": "Module 2, nettoyer : retirer le bruit des photos (Julien)",
+      "start": "bruit"
+    },
+    "s3": {
+      "description": "Module 3, décrire : écrire une légende pour chaque photo (Mathieu)",
+      "start": "coco"
+    },
+    "s4": {
+      "description": "Le workflow complet et la démo",
+      "start": "pipeline"
+    },
+    "s5": {
+      "description": "Annexes techniques pour les questions du jury",
+      "start": "a1-cnn"
+    }
+  },
+  "title": "Soutenance TouNum"
+}
